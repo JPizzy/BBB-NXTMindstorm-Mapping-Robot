@@ -1,0 +1,157 @@
+"use strict";
+// Client-side interactions with the browser.
+
+var serverNotConnectedErrorShown = false;
+
+// Make connection to server when web page is fully loaded.
+var socket = io.connect();
+$(document).ready(function() {
+
+	//continously update volume, bpm, mode, uptime, and check connection status
+	window.setInterval(function() {
+		sendCommand("getVolume");
+		sendCommand("getBPM");
+		sendCommand("getMode");
+		sendRequest('uptime');
+		checkServerConnection(socket);
+	}, 1000);
+
+	$('#modeNone').click(function(){
+		sendCommand("modeNone");
+		
+	});
+	$('#modeRock1').click(function(){
+		sendCommand("modeRock1");
+
+	});
+	$('#modeRock2').click(function(){
+		sendCommand("modeRock2");
+		
+	});
+	$('#volumeDown').click(function(){
+		sendCommand("volumeDown");
+
+	});
+	$('#volumeUp').click(function(){
+		sendCommand("volumeUp");
+
+	});
+	$('#bpmDown').click(function(){
+		sendCommand("bpmDown");
+
+	});
+	$('#bpmUp').click(function(){
+		sendCommand("bpmUp");
+
+	});
+	$('#sound1').click(function(){
+		sendCommand("sound1");
+	});
+	$('#sound2').click(function(){
+		sendCommand("sound2");
+	});
+	$('#sound3').click(function(){
+		sendCommand("sound3");
+	});
+
+	socket.on('commandReply', function(result) {
+		var buffMessage = result.buffMsg;
+		if(result.buffName == "modeNone" ||result.buffName == "modeRock1"||result.buffName == "modeRock2") {
+			$('#modeid').text(buffMessage);
+			
+		}
+
+		if(result.buffName == "volumeDown" ||result.buffName == "volumeUp") {
+			$('#volumeid').val(buffMessage);
+			
+		}
+	
+		if(result.buffName == "bpmDown" ||result.buffName == "bpmUp") {
+			$('#bpmid').val(buffMessage);
+			
+		}
+
+		if(result.buffName == "getVolume") {
+			$('#volumeid').val(buffMessage);
+			
+		}
+		
+		if(result.buffName == "getBPM") {
+			$('#bpmid').val(buffMessage);
+			
+		}
+
+		if(result.buffName == "getMode") {
+	
+			if(buffMessage == "0") {
+				$('#modeid').text("None");
+			}
+			
+			if(buffMessage == "1") {
+				$('#modeid').text("Rock #1");
+			}
+		
+			if(buffMessage == "2") {
+				$('#modeid').text("Rock #2");
+			}
+			
+		}
+		
+		});
+
+	// Handle data coming back from the server
+	socket.on('fileContents', function(result) {
+		var fileName = result.fileName;
+		var contents = result.contents;
+	
+		var timeArray = contents.split(" ");
+		var timeInSeconds = parseInt(timeArray);
+		
+		var hours = parseInt((timeInSeconds / 60) / 60);
+		var minutes = parseInt((timeInSeconds - (hours * 60 * 60)) / 60);
+		var seconds = parseInt(timeInSeconds - (hours * 60 * 60) - (minutes * 60));
+	
+		$('#status').html("<p>Device up for:<br>" + hours + ":" + minutes + ":" + seconds + "(H:M:S)</p>");
+	});
+
+	socket.on("serverErr", function(errMsg) {
+		$('#error-box').show();
+		$('#error-text').text(errMsg);
+		setErrorBoxHideTimer();
+	});
+
+	socket.on("beatboxOn", function(errMsg) {
+		$('#error-box').hide();
+	});
+
+});
+
+function sendCommand(message) {
+	socket.emit('beatbox', message);
+};
+
+function sendRequest(file) {
+	console.log("Requesting '" + file + "'");
+	socket.emit('proc', file);
+}
+
+function setErrorBoxHideTimer() {
+	setTimeout(function() {
+		$('#error-box').hide();
+	}, 10000);
+}
+
+function checkServerConnection(socket) {
+	if(socket.connected == false && serverNotConnectedErrorShown == false) {
+		serverNotConnectedErrorShown = true;
+		$('#error-box').show();
+		$('#error-text').text("SERVER ERROR: No response from node.js server. Is it running?");
+		setErrorBoxHideTimer();
+	} 
+	else if(socket.connected == true && serverNotConnectedErrorShown == true) {
+		$('#error-box').hide();
+		if(serverNotConnectedErrorShown == true) {
+			serverNotConnectedErrorShown = false;
+		}
+	}
+}

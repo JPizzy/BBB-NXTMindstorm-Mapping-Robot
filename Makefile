@@ -1,10 +1,18 @@
-OUTFILE = nxtProject
-OUTDIR = $(HOME)/cmpt433/public/myApps
+TARGET = nxtProject
+PUBDIR = $(HOME)/cmpt433/public/myApps
+OUTDIR = $(PUBDIR)
 CROSS_COMPILE = arm-linux-gnueabi-
 CC_C = $(CROSS_COMPILE)gcc
 CFLAGS = -Wall -g -std=c99 -D _POSIX_C_SOURCE=200809L -Werror
 
-all:
-	$(CC_C) $(CFLAGS) bt_demo.c -o $(OUTDIR)/$(OUTFILE) -lbluetooth
+SOURCES = bt_demo.c udpListener.c
+
+all: node
+	$(CC_C) $(CFLAGS) $(SOURCES) -o $(OUTDIR)/$(TARGET) -lbluetooth
 	
-#$(CC_C) $(CFLAGS) bt_demo.c -o $(OUTDIR)/$(OUTFILE) -lm -lbluetooth -L/usr/lib -v -Wl,-verbose
+node:
+	mkdir -p $(PUBDIR)/nxt-server-copy/ 
+	cp -R server/* $(PUBDIR)/nxt-server-copy/  
+
+clean:
+	rm -f $(OUTDIR)/$(TARGET)

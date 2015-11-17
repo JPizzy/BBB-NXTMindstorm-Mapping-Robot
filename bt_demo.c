@@ -3,6 +3,7 @@
 #include <sys/socket.h>
 #include <bluetooth/bluetooth.h>
 #include <bluetooth/rfcomm.h>
+#include "udpListener.h"
 
 int main(int argc, char **argv)
 {
@@ -20,6 +21,9 @@ int main(int argc, char **argv)
 
     // connect to server
     status = connect(s, (struct sockaddr *)&addr, sizeof(addr));
+    
+    // start udp listener
+    UDPListener_launchThread();
 
     // send a message
     if( status == 0 ) {
