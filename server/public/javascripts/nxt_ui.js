@@ -7,11 +7,25 @@ var serverNotConnectedErrorShown = false;
 var socket = io.connect();
 $(document).ready(function() {
 
-	//continously update volume, bpm, mode, uptime, and check connection status
+	// Continously update volume, bpm, mode, uptime, and check connection status
 	window.setInterval(function() {
 		sendRequest('uptime');
 		checkServerConnection(socket);
 	}, 1000);
+	
+	// Set up buttons
+	$('#moveForward').click(function() {
+		sendCommand("moveForward");
+	});
+	$('#moveBackward').click(function() {
+		sendCommand("moveBackward");
+	});
+	$('#moveLeft').click(function() {
+		sendCommand("moveLeft");
+	});
+	$('#moveRight').click(function() {
+		sendCommand("moveRight");
+	});
 
 	// Handle data coming back from the server
 	socket.on('fileContents', function(result) {

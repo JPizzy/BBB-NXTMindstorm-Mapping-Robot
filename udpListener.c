@@ -44,15 +44,48 @@ void *UDPListen(void* arg) {
 		}
 
 		if(strcmp(message, "uptime") == 0) {
-
 			if(sendto(socketDescriptor, upTime, strlen(upTime), 0,
 				(struct sockaddr*)&sin, sin_len) == -1) {
-			
 					perror("sendto()");
 					exit(1);
 				}
 		}
-		
+		else if(strcmp(message, "moveForward") == 0) {
+			// TODO: Insert movement function here
+			// NxtMapper_moveForward();
+			if(sendto(socketDescriptor, volume, strlen(volume), 0,
+				(struct sockaddr*)&sin, sin_len) == -1) {
+					perror("sendto()");
+					exit(1);
+				}
+		}
+		else if(strcmp(message, "moveBackward") == 0) {
+			// TODO: Insert movement function here
+			// NxtMapper_moveBackward();
+			if(sendto(socketDescriptor, volume, strlen(volume), 0,
+				(struct sockaddr*)&sin, sin_len) == -1) {
+					perror("sendto()");
+					exit(1);
+				}
+		}
+		else if(strcmp(message, "moveLeft") == 0) {
+			// TODO: Insert movement function here
+			// NxtMapper_turnLeft();
+			if(sendto(socketDescriptor, volume, strlen(volume), 0,
+				(struct sockaddr*)&sin, sin_len) == -1) {
+					perror("sendto()");
+					exit(1);
+				}
+		}
+		else if(strcmp(message, "moveRight") == 0) {
+			// TODO: Insert movement function here
+			// NxtMapper_turnRight();
+			if(sendto(socketDescriptor, volume, strlen(volume), 0,
+				(struct sockaddr*)&sin, sin_len) == -1) {
+					perror("sendto()");
+					exit(1);
+				}
+		}
 
 		// Clears the char array
 		memset(message, '\0', MSG_MAX_LEN);
@@ -64,7 +97,6 @@ void *UDPListen(void* arg) {
 }
 
 void UDPListener_launchThread() {
-	
 	pthread_t UDPListenerThread;
 	pthread_create(&UDPListenerThread, NULL, UDPListen, NULL);
 }
