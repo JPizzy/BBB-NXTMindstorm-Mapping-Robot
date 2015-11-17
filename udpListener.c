@@ -17,6 +17,10 @@ void *UDPListen(void* arg) {
 	struct sockaddr_in sin;
 	char message[MSG_MAX_LEN];
 	char upTime[MSG_MAX_LEN] = {"/proc/uptime"};
+	char moveForward[MSG_MAX_LEN];
+	char moveBackward[MSG_MAX_LEN];
+	char moveLeft[MSG_MAX_LEN];
+	char moveRight[MSG_MAX_LEN];
 
 	socklen_t sin_len = sizeof(sin);
 	int bytesRx;
@@ -54,7 +58,7 @@ void *UDPListen(void* arg) {
 			// TODO: Insert movement function here
 			// NxtMapper_moveForward();
 			nxtMove(1);
-			if(sendto(socketDescriptor, volume, strlen(volume), 0,
+			if(sendto(socketDescriptor, moveForward, strlen(moveForward), 0,
 				(struct sockaddr*)&sin, sin_len) == -1) {
 					perror("sendto()");
 					exit(1);
@@ -64,7 +68,7 @@ void *UDPListen(void* arg) {
 			// TODO: Insert movement function here
 			// NxtMapper_moveBackward();
 			nxtMove(3);
-			if(sendto(socketDescriptor, volume, strlen(volume), 0,
+			if(sendto(socketDescriptor, moveBackward, strlen(moveBackward), 0,
 				(struct sockaddr*)&sin, sin_len) == -1) {
 					perror("sendto()");
 					exit(1);
@@ -74,7 +78,7 @@ void *UDPListen(void* arg) {
 			// TODO: Insert movement function here
 			// NxtMapper_turnLeft();
 			nxtMove(4);
-			if(sendto(socketDescriptor, volume, strlen(volume), 0,
+			if(sendto(socketDescriptor, moveLeft, strlen(moveLeft), 0,
 				(struct sockaddr*)&sin, sin_len) == -1) {
 					perror("sendto()");
 					exit(1);
@@ -84,7 +88,7 @@ void *UDPListen(void* arg) {
 			// TODO: Insert movement function here
 			// NxtMapper_turnRight();
 			nxtMove(3);
-			if(sendto(socketDescriptor, volume, strlen(volume), 0,
+			if(sendto(socketDescriptor, moveRight, strlen(moveRight), 0,
 				(struct sockaddr*)&sin, sin_len) == -1) {
 					perror("sendto()");
 					exit(1);
