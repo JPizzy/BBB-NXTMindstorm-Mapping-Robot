@@ -1,7 +1,7 @@
 {
-	"name": "beatbox-server",
+	"name": "nxt-server",
 	"version": "0.0.1",
-	"description": "Beatbox server",
+	"description": "NXT server",
 	"dependencies": {
 		"socket.io": "~0.9.6",
 		"mime": "~1.2.7"

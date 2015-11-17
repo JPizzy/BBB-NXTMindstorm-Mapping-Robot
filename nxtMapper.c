@@ -33,5 +33,7 @@ int main(int argc, char **argv)
     if( status < 0 ) perror("uh oh");
 
     close(s);
+    
+    while(1){};
     return 0;
 }

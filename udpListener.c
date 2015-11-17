@@ -7,7 +7,7 @@
 #include <unistd.h>
 #include <string.h>
 #include <ctype.h>
-#include "bt_demo.h"
+#include "nxtMapper.h"
 
 #define PORT 12345
 #define MSG_MAX_LEN 1024

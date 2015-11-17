@@ -26,8 +26,8 @@
 							<td colspan="2" align="center"><input type="button" id="moveUp" value="Up"/></td>
 						</tr>
 						<tr>
-							<td align="left"><input type="button" id="movementLeft" value="Left"/></td>
-							<td align="right"><input type="button" id="movementRight" value="Right"/></td>
+							<td><input type="button" id="movementLeft" value="Left"/></td>
+							<td><input type="button" id="movementRight" value="Right"/></td>
 						</tr>
 						<tr>
 							<td colspan="2" align="center"><input type="button" id="movementDown" value="Down"/></td>
