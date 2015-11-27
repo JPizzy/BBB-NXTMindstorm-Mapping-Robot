@@ -2,6 +2,7 @@
 #include <stdlib.h>
 #include <time.h>
 #include <unistd.h>
+#include <pthread.h>
 #include <sys/socket.h>
 #include <bluetooth/bluetooth.h>
 #include <bluetooth/rfcomm.h>
@@ -28,6 +29,39 @@ typedef struct {
     uint8_t tach3;
     uint8_t tach4;
 }__attribute__((packed)) setMotor;
+
+//sensor command struct
+typedef struct {
+	uint8_t lsb;
+	uint8_t msb;
+	uint8_t cmdType;
+	uint8_t cmdState;
+	uint8_t port;
+	uint8_t sensorType;
+	uint8_t sensorMode;
+}__attribute__((packed)) sensorCommand;
+
+//sensor response command struct
+typedef struct {
+	uint8_t lsb;
+	uint8_t msb;
+	uint8_t response1;
+	uint8_t response2;
+	uint8_t sensorStatus;
+	uint8_t port;
+	uint8_t isValid;
+	uint8_t isCalibrated;
+	uint8_t sensorType;
+	uint8_t sensorMode;
+	uint8_t rawValue1;
+	uint8_t rawValue2;
+	uint8_t normValue1;
+	uint8_t normValue2;
+	uint8_t scaledValue1;
+	uint8_t scaledValue2;
+	uint8_t calibratedValue1;
+	uint8_t calibratedValue2;
+}__attribute__((packed)) sensorResponse;
 
 void activatePin() {
     FILE *joystickFile = fopen("/sys/class/gpio/export", "w");
@@ -264,6 +298,59 @@ void nxtMove(int value) {
     }
 
 }
+
+void *EyeSensor(void* arg) {
+	printf("Started eye sensor thread!\n");
+	sensorResponse eyeRead;
+	sensorCommand eyeWrite = {
+		0x05, // LSB
+        0x00, // MSB
+        0x00, // Command: Direct command require response
+        0x07, // Command Type: Read Sensor
+        0x00, // Sensor Port: Port 1
+        0x0C, // Sensor Type
+        0x00  // Sensor Mode: Raw
+	};
+	
+	while(1){
+		if(write(s, (const void *)&eyeWrite, (int)sizeof(eyeWrite))) {
+			printf("Eye write sucessful!\n\n");
+		}
+		else {
+			printf("Eye write did not work!\n\n");
+		}
+		
+		printf("Attempting read\n");
+		if(read(s, (void*)&eyeRead, (int)sizeof(eyeRead))) {
+			printf("Eye read sucessful!\n\n");
+		}
+		else {
+			printf("Eye read did not work!\n\n");
+		}
+		
+		printf("%x\n %x\n %x\n %x\n %x\n %x\n %x\n %x\n %x\n %x\n %x\n %x\n %x\n %x\n %x\n %x\n %x\n %x\n",
+		eyeRead.lsb,
+		eyeRead.msb,
+		eyeRead.response1,
+		eyeRead.response2,
+		eyeRead.sensorStatus,
+		eyeRead.port,
+		eyeRead.isValid,
+		eyeRead.isCalibrated,
+		eyeRead.sensorType,
+		eyeRead.sensorMode,
+		eyeRead.rawValue1,
+		eyeRead.rawValue2,
+		eyeRead.normValue1,
+		eyeRead.normValue2,
+		eyeRead.scaledValue1,
+		eyeRead.scaledValue2,
+		eyeRead.calibratedValue1,
+		eyeRead.calibratedValue2);
+		//printf("Raw: (%x, %x)", eyeRead.rawValue1, eyeRead.rawValue2);
+	}
+}
+
 int main(int argc, char **argv)
 {
     struct sockaddr_rc addr = { 0 };
@@ -285,6 +372,9 @@ int main(int argc, char **argv)
     
     // start udp listener
     UDPListener_launchThread();
+    
+    pthread_t EyeSensorThread;
+	pthread_create(&EyeSensorThread, NULL, EyeSensor, NULL);
 
     // send a message
     printf("status: %d\n", status);
@@ -300,6 +390,8 @@ int main(int argc, char **argv)
             }
         }
     }
+    
+    
 
     if( status < 0 ) perror("Error");
 
