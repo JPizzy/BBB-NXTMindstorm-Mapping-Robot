@@ -12,6 +12,11 @@
 #define PORT 12345
 #define MSG_MAX_LEN 1024
 
+#define FORWARD 1
+#define RIGHT 2
+#define BACKWARD 3
+#define LEFT 4
+
 void *UDPListen(void* arg) {
 	
 	struct sockaddr_in sin;
@@ -55,9 +60,7 @@ void *UDPListen(void* arg) {
 				}
 		}
 		else if(strcmp(message, "moveForward") == 0) {
-			// TODO: Insert movement function here
-			// NxtMapper_moveForward();
-			nxtMove(1);
+			nxtMove(FORWARD);
 			if(sendto(socketDescriptor, moveForward, strlen(moveForward), 0,
 				(struct sockaddr*)&sin, sin_len) == -1) {
 					perror("sendto()");
@@ -65,9 +68,7 @@ void *UDPListen(void* arg) {
 				}
 		}
 		else if(strcmp(message, "moveBackward") == 0) {
-			// TODO: Insert movement function here
-			// NxtMapper_moveBackward();
-			nxtMove(3);
+			nxtMove(BACKWARD);
 			if(sendto(socketDescriptor, moveBackward, strlen(moveBackward), 0,
 				(struct sockaddr*)&sin, sin_len) == -1) {
 					perror("sendto()");
@@ -75,9 +76,7 @@ void *UDPListen(void* arg) {
 				}
 		}
 		else if(strcmp(message, "moveLeft") == 0) {
-			// TODO: Insert movement function here
-			// NxtMapper_turnLeft();
-			nxtMove(4);
+			nxtMove(LEFT);
 			if(sendto(socketDescriptor, moveLeft, strlen(moveLeft), 0,
 				(struct sockaddr*)&sin, sin_len) == -1) {
 					perror("sendto()");
@@ -85,9 +84,7 @@ void *UDPListen(void* arg) {
 				}
 		}
 		else if(strcmp(message, "moveRight") == 0) {
-			// TODO: Insert movement function here
-			// NxtMapper_turnRight();
-			nxtMove(3);
+			nxtMove(RIGHT);
 			if(sendto(socketDescriptor, moveRight, strlen(moveRight), 0,
 				(struct sockaddr*)&sin, sin_len) == -1) {
 					perror("sendto()");
