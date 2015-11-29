@@ -14,21 +14,65 @@ static int s;
 
 //motor command struct
 typedef struct {
-    uint8_t lsb;
-    uint8_t msb;
-    uint8_t cmdType;
-    uint8_t cmdState;
-    uint8_t motor;
-    uint8_t speed;
-    uint8_t mode;
-    uint8_t reg;
-    uint8_t ratio;
-    uint8_t state;
-    uint8_t tach1;
-    uint8_t tach2;
-    uint8_t tach3;
-    uint8_t tach4;
+	uint8_t lsb;
+	uint8_t msb;
+	uint8_t cmdType;
+	uint8_t cmdState;
+	uint8_t motor;
+	uint8_t speed;
+	uint8_t mode;
+	uint8_t reg;
+	uint8_t ratio;
+	uint8_t state;
+	uint8_t tach1;
+	uint8_t tach2;
+	uint8_t tach3;
+	uint8_t tach4;
 }__attribute__((packed)) setMotor;
+
+typedef struct {
+	uint8_t lsb;
+	uint8_t msb;
+	uint8_t response;
+	uint8_t read;
+	uint8_t port;
+}__attribute__((packed)) getMotor;
+
+typedef struct {
+	uint8_t lsb;
+	uint8_t msb;
+	uint8_t response1;
+	uint8_t response2;
+	uint8_t power;
+	uint8_t mode;
+	uint8_t regMode;
+	uint8_t turnRatio;
+	uint8_t runState;
+	uint8_t tach1;
+	uint8_t tach2;
+	uint8_t tach3;
+	uint8_t tach4;
+	uint8_t tachCount1;
+	uint8_t tachCount2;
+	uint8_t tachCount3;
+	uint8_t tachCount4;
+	uint8_t tachBlock1;
+	uint8_t tachBlock2;
+	uint8_t tachBlock3;
+	uint8_t tachBlock4;
+	uint8_t rotationCount1;
+	uint8_t rotationCount2;
+	uint8_t rotationCount3;
+	uint8_t rotationCount4;
+}__attribute__((packed)) motorResponse;
+
+typedef struct {
+	uint8_t lsb;
+	uint8_t msb;
+	uint8_t response;
+	uint8_t command;
+	uint8_t status;
+}__attribute__((packed)) commandResponse;
 
 //sensor command struct
 typedef struct {
@@ -39,7 +83,15 @@ typedef struct {
 	uint8_t port;
 	uint8_t sensorType;
 	uint8_t sensorMode;
-}__attribute__((packed)) sensorCommand;
+}__attribute__((packed)) setSensor;
+
+typedef struct {
+	uint8_t lsb;
+	uint8_t msb;
+	uint8_t response;
+	uint8_t read;
+	uint8_t port;
+}__attribute__((packed)) getSensor;
 
 //sensor response command struct
 typedef struct {
