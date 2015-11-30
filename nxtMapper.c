@@ -9,6 +9,39 @@
 #include "udpListener.h"
 
 #define BUFFER_MAX 1024
+#define JOYSTICK_PRESSED_PIN 27
+#define JOYSTICK_UP_PIN 26
+#define JOYSTICK_DOWN_PIN 46
+#define JOYSTICK_LEFT_PIN 65
+#define JOYSTICK_RIGHT_PIN 47
+#define FILEPATH_PRESSED_VALUE "/sys/class/gpio/gpio27/value" 
+#define FILEPATH_UP_VALUE "/sys/class/gpio/gpio26/value" 
+#define FILEPATH_DOWN_VALUE "/sys/class/gpio/gpio46/value" 
+#define FILEPATH_LEFT_VALUE "/sys/class/gpio/gpio65/value" 
+#define FILEPATH_RIGHT_VALUE "/sys/class/gpio/gpio47/value" 
+
+void exportJoystickPin(int pin)
+{
+	FILE *pfile = fopen("/sys/class/gpio/export", "w");
+	if (pfile == NULL) {
+		printf("ERROR: Unable to open export file.\n");
+		exit(1);
+	}
+	
+	fprintf(pfile, "%d", pin);
+	fclose(pfile);
+}
+
+void initializeJoysticks()
+{
+	exportJoystickPin(JOYSTICK_PRESSED_PIN);
+	exportJoystickPin(JOYSTICK_UP_PIN);
+	exportJoystickPin(JOYSTICK_DOWN_PIN);
+	exportJoystickPin(JOYSTICK_LEFT_PIN);
+	exportJoystickPin(JOYSTICK_RIGHT_PIN);
+}
+
+
 //Socket for bluetooth
 static int s;
 
@@ -353,34 +386,75 @@ void nxtMove(int value) {
 
 void *EyeSensor(void* arg) {
 	printf("Started eye sensor thread!\n");
-	sensorResponse eyeRead;
-	sensorCommand eyeWrite = {
+	sensorResponse eyeRead = {0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0};
+	setSensor eyeWrite = {
 		0x05, // LSB
         0x00, // MSB
-        0x00, // Command: Direct command require response
-        0x07, // Command Type: Read Sensor
-        0x00, // Sensor Port: Port 1
-        0x0C, // Sensor Type
+        
+        0x80, // Command: Direct command requires no response
+        0x05, // Command Type: Set Input Mode
+        0x01, // Sensor Port: Port 1
+        0x0B, // Sensor Type: Lowspeed 9V
         0x00  // Sensor Mode: Raw
 	};
+	//commandResponse commandRes;
+	getSensor getResponse = {
+		0x03, // LSB
+		0x00, // MSB
+		
+		0x00, // Command: Direct command require response
+		0x07, // Command Type: Get Input Values
+		0x01  // Sensor Port: Port 1
+	};
+	
+	// Turn on sensor
+	if(write(s, (const void *)&eyeWrite, (int)sizeof(eyeWrite))) {
+		printf("Sensor turned on sucessfully!\n\n");
+	}
+	else {
+		printf("Sensor not turned on! Requires foreplay!\n\n");
+	}
 	
 	while(1){
-		if(write(s, (const void *)&eyeWrite, (int)sizeof(eyeWrite))) {
-			printf("Eye write sucessful!\n\n");
+	
+		sleep(1);
+		
+		// Poll sensor
+		if(write(s, (const void *)&getResponse, (int)sizeof(getResponse))) {
+			printf("Sensor write sucessful!\n\n");
 		}
 		else {
-			printf("Eye write did not work!\n\n");
+			printf("Sensor write did not work!\n\n");
 		}
 		
+		// Read sensor
 		printf("Attempting read\n");
 		if(read(s, (void*)&eyeRead, (int)sizeof(eyeRead))) {
-			printf("Eye read sucessful!\n\n");
+			printf("Sensor read sucessful!\n\n");
 		}
 		else {
-			printf("Eye read did not work!\n\n");
+			printf("Sensor read did not work!\n\n");
 		}
 		
-		printf("%x\n %x\n %x\n %x\n %x\n %x\n %x\n %x\n %x\n %x\n %x\n %x\n %x\n %x\n %x\n %x\n %x\n %x\n",
+		printf("\
+LSB:         %x\n \
+MSB:         %x\n \
+0x02:        %x\n \
+0x07:        %x\n \
+Status:      %x\n \
+Input Port:  %x\n \
+Valid:       %x\n \
+Calibrated:  %x\n \
+Sensor Type: %x\n \
+Sensor Mode: %x\n \
+RAW:         %x\n \
+RAW:         %x\n \
+Normalized:  %x\n \
+Normalized:  %x\n \
+Scaled:      %x\n \
+Scaled:      %x\n \
+Calibrated:  %x\n \
+Calibrated:  %x\n",
 		eyeRead.lsb,
 		eyeRead.msb,
 		eyeRead.response1,
@@ -400,11 +474,15 @@ void *EyeSensor(void* arg) {
 		eyeRead.calibratedValue1,
 		eyeRead.calibratedValue2);
 		//printf("Raw: (%x, %x)", eyeRead.rawValue1, eyeRead.rawValue2);
+	/*printf("%x\n %x\n %x\n %x\n %x\n", commandRes.lsb, commandRes.msb, commandRes.response, commandRes.command, commandRes.status);*/
 	}
 }
 
 int main(int argc, char **argv)
 {
+
+	initializeJoysticks();
+
     struct sockaddr_rc addr = { 0 };
     int status;
     int value = 0;
