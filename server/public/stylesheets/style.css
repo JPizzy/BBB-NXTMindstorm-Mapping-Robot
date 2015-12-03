@@ -55,11 +55,14 @@ h1, h2 {
 }
 
 #map-canvas {
-	border: 3px #f3f3f3 ridge;
-	margin: auto;
+	border: 2px #ffffff ridge;
+	margin-top: 10pt;
+	margin-bottom: 5pt;
+	margin-left: auto;
+	margin-right: auto;
 	display: block;
 }
 
 table {
-	margin : 0 auto;
+	margin: 0 auto;
 }

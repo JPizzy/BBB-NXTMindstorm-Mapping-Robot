@@ -26,6 +26,10 @@ void *UDPListen(void* arg) {
 	char moveBackward[MSG_MAX_LEN];
 	char moveLeft[MSG_MAX_LEN];
 	char moveRight[MSG_MAX_LEN];
+	char rotateClockwise[MSG_MAX_LEN];
+	char rotateCounterClockwise[MSG_MAX_LEN];
+	char mapData[MSG_MAX_LEN];
+	//int distanceVal;
 
 	socklen_t sin_len = sizeof(sin);
 	int bytesRx;
@@ -91,6 +95,36 @@ void *UDPListen(void* arg) {
 					exit(1);
 				}
 		}
+		else if(strcmp(message, "rotateClockwise") == 0) {
+			//TODO: Call rotate eye clockwise function
+			if(sendto(socketDescriptor, rotateClockwise, strlen(rotateClockwise), 0,
+				(struct sockaddr*)&sin, sin_len) == -1) {
+					perror("sendto()");
+					exit(1);
+				}
+		}
+		else if(strcmp(message, "rotateCounterClockwise") == 0) {
+			//TODO: Call rotate eye counter clockwise function
+			if(sendto(socketDescriptor, rotateCounterClockwise, strlen(rotateCounterClockwise), 0,
+				(struct sockaddr*)&sin, sin_len) == -1) {
+					perror("sendto()");
+					exit(1);
+				}
+		}
+		else if(strcmp(message, "getMapData") == 0) {
+			//TODO: Call getDistance function
+			// int distanceVal = getDistance();
+			
+			//TODO: copy data into buffer
+			// sprintf(mapData, "%d", distanceVal);
+
+			if(sendto(socketDescriptor, mapData, strlen(mapData), 0,
+				(struct sockaddr*)&sin, sin_len) == -1) {
+					perror("sendto()");
+					exit(1);
+				}
+		}
+		
 
 		// Clears the char array
 		memset(message, '\0', MSG_MAX_LEN);

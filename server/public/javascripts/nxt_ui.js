@@ -7,8 +7,9 @@ var serverNotConnectedErrorShown = false;
 var socket = io.connect();
 $(document).ready(function() {
 
-	// Continously update volume, bpm, mode, uptime, and check connection status
+	// Continously check for map data and connection status
 	window.setInterval(function() {
+		sendRequest('getMapData');
 		sendRequest('uptime');
 		checkServerConnection(socket);
 	}, 1000);
@@ -25,6 +26,12 @@ $(document).ready(function() {
 	});
 	$('#moveRight').click(function() {
 		sendCommand("moveRight");
+	});
+	$('#rotateClockwise').click(function() {
+		sendCommand("rotateClockwise");
+	});
+	$('#rotateCounterClockwise').click(function() {
+		sendCommand("rotateCounterClockwise");
 	});
 
 	// Handle data coming back from the server
@@ -82,4 +89,31 @@ function checkServerConnection(socket) {
 			serverNotConnectedErrorShown = false;
 		}
 	}
+}
+
+//////////////////////////////////////////////////////////////
+// M A P P I N G
+//////////////////////////////////////////////////////////////
+
+function mapDistance(centimeters) {
+	var canvas = document.getElementById('map-canvas');
+	var ctx = canvas.getContext('2d');
+	var nxtX = canvas.width/2;
+	var nxtY = canvas.height/2;
+	var pixelToDraw = centimetersToPx(centimeters);
+	drawDataPoint(nxtX, pixelToDraw);
+}
+
+function centimetersToPx(centimeters) {
+	var canvas = document.getElementById('map-canvas');
+	var nxtMaxRange = 200;
+	return (canvas.height/2) * (centimeters/nxtMaxRange);
+}
+
+function drawDataPoint(x, y) {
+	var pxSize = 4;
+	var offset = pxSize/2;
+	var canvas = document.getElementById('map-canvas');
+	var ctx = canvas.getContext('2d');
+	ctx.fillRect((x-offset), (y-offset), pxSize, pxSize);
 }
