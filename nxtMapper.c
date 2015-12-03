@@ -7,20 +7,24 @@
 #include <bluetooth/bluetooth.h>
 #include <bluetooth/rfcomm.h>
 #include "udpListener.h"
+#include "zencape.h"
 
-#define BUFFER_MAX 1024
 #define JOYSTICK_PRESSED_PIN 27
 #define JOYSTICK_UP_PIN 26
 #define JOYSTICK_DOWN_PIN 46
 #define JOYSTICK_LEFT_PIN 65
 #define JOYSTICK_RIGHT_PIN 47
+#define DISPLAY_LEFT_PIN 61
+#define DISPLAY_RIGHT_PIN 44
 #define FILEPATH_PRESSED_VALUE "/sys/class/gpio/gpio27/value" 
 #define FILEPATH_UP_VALUE "/sys/class/gpio/gpio26/value" 
 #define FILEPATH_DOWN_VALUE "/sys/class/gpio/gpio46/value" 
 #define FILEPATH_LEFT_VALUE "/sys/class/gpio/gpio65/value" 
 #define FILEPATH_RIGHT_VALUE "/sys/class/gpio/gpio47/value" 
+#define FILEPATH_LEFTDISPLAY_VALUE "/sys/class/gpio61/value"
+#define FILEPATH_RIGHTDISPLAY_VALUE "/sys/class/gpio44/value"
 
-void exportJoystickPin(int pin)
+void exportPin(int pin)
 {
 	FILE *pfile = fopen("/sys/class/gpio/export", "w");
 	if (pfile == NULL) {
@@ -32,13 +36,15 @@ void exportJoystickPin(int pin)
 	fclose(pfile);
 }
 
-void initializeJoysticks()
+void initializePins()
 {
-	exportJoystickPin(JOYSTICK_PRESSED_PIN);
-	exportJoystickPin(JOYSTICK_UP_PIN);
-	exportJoystickPin(JOYSTICK_DOWN_PIN);
-	exportJoystickPin(JOYSTICK_LEFT_PIN);
-	exportJoystickPin(JOYSTICK_RIGHT_PIN);
+	exportPin(JOYSTICK_PRESSED_PIN);
+	exportPin(JOYSTICK_UP_PIN);
+	exportPin(JOYSTICK_DOWN_PIN);
+	exportPin(JOYSTICK_LEFT_PIN);
+	exportPin(JOYSTICK_RIGHT_PIN);
+    exportPin(DISPLAY_LEFT_PIN);
+    exportPin(DISPLAY_RIGHT_PIN);
 }
 
 
@@ -297,90 +303,6 @@ static setMotor reverseC = {
             0x00
         };
 
-void activatePin() {
-    FILE *joystickFile = fopen("/sys/class/gpio/export", "w");
-    if (joystickFile == NULL) {
-        printf("ERROR: Unable to open export file.\n");
-        exit(1);
-    }
-    fprintf(joystickFile, "%d", 26);
-    fprintf(joystickFile, "%d", 47);
-    fprintf(joystickFile, "%d", 46);
-    fprintf(joystickFile, "%d", 65);
-    fprintf(joystickFile, "%d", 27);
-    fclose(joystickFile);
-}
-
-int checkInput() {
-    char buff[BUFFER_MAX];
-
-    //Up
-    FILE *joystickUp = fopen("/sys/class/gpio/gpio26/value", "r");
-    if (joystickUp == NULL) {
-        printf("ERROR: Unable to open file for up read\n");
-        exit(1);
-    }
-    fgets(buff, BUFFER_MAX, joystickUp);
-    fclose(joystickUp);
-    if (buff[0] == '0') {
-        return 1;
-    }
-
-    //Right
-    FILE *joystickRight = fopen("/sys/class/gpio/gpio47/value", "r");
-    if (joystickRight == NULL) {
-        printf("ERROR: Unable to open file for right read\n");
-        exit(1);
-    }
-    fgets(buff, BUFFER_MAX, joystickRight);
-    fclose(joystickRight);
-    if (buff[0] == '0') {
-        return 2;
-    }
-
-    //Down
-    FILE *joystickDown = fopen("/sys/class/gpio/gpio46/value", "r");
-    if (joystickDown == NULL) {
-        printf("ERROR: Unable to open file for down read\n");
-        exit(1);
-    }
-    fgets(buff, BUFFER_MAX, joystickDown);
-    fclose(joystickDown);
-    if (buff[0] == '0') {
-        return 3;
-    }
-
-    //Left
-    FILE *joystickLeft = fopen("/sys/class/gpio/gpio65/value", "r");
-    if (joystickLeft == NULL) {
-        printf("ERROR: Unable to open file for left read\n");
-        exit(1);
-    }
-    fgets(buff, BUFFER_MAX, joystickLeft);
-    fclose(joystickLeft);
-    if (buff[0] == '0') {
-        return 4;
-    }
-
-    return 0;
-}
-
-//Wait 10ms
-void pollDelay() {
-    long seconds = 0;
-    long nanoseconds = 10000000;
-    struct timespec reqDelay = {seconds, nanoseconds};
-    nanosleep(&reqDelay, (struct timespec *) NULL);
-}
-
-//Wait 100ms
-void actionDelay() {
-    long seconds = 0;
-    long nanoseconds = 100000000;
-    struct timespec reqDelay = {seconds, nanoseconds};
-    nanosleep(&reqDelay, (struct timespec *) NULL);
-}
-
 void nxtMove(int value) {
     if (value == 1) {
         //Forward
@@ -397,12 +319,12 @@ void nxtMove(int value) {
         write(s, (const void *)&reverseC, (int)sizeof(reverseC));
     } else if (value == 4) {
         //left
-        write(s, (const void *)&reverseA, (int)sizeof(reverseA));
         write(s, (const void *)&forwardC, (int)sizeof(forwardC));
+        write(s, (const void *)&reverseA, (int)sizeof(reverseA));
+
     }
-
 }
-
+/*
 #define SENSOR_PORT 0x00
 void *EyeSensor(void* arg) {
 	printf("Started eye sensor thread!\n");
@@ -474,8 +396,7 @@ void *EyeSensor(void* arg) {
 		else {
 			printf("Read into struct did not work!\n\n");
 		} 
-	
-// Print lsReadResponse	
+
 		printf(" \
         LSB:         %x\n \
         MSB:         %x\n \
@@ -523,16 +444,14 @@ void *EyeSensor(void* arg) {
         lsReadResponse.data16);
 	}
 }
-
+*/
 int main(int argc, char **argv)
 {
 
-	initializeJoysticks();
+	initializePins();
 
     struct sockaddr_rc addr = { 0 };
     int status;
-    int value = 0;
-    activatePin();
     const char dest[18] = "00:16:53:09:D3:3C";
 
     // allocate a socket
@@ -545,30 +464,21 @@ int main(int argc, char **argv)
 
     // connect to server
     status = connect(s, (struct sockaddr *)&addr, sizeof(addr));
-    
-    // start udp listener
-    UDPListener_launchThread();
-    
-    pthread_t EyeSensorThread;
-	pthread_create(&EyeSensorThread, NULL, EyeSensor, NULL);
+       
+    pthread_t joystickThread;
 
     // send a message
     printf("status: %d\n", status);
 
     // send a message
     if( status == 0 ) {
+        // start udp listener
+        UDPListener_launchThread();
+        pthread_create(&joystickThread, NULL, joystickStart, NULL);
         while(1) {
-            pollDelay();
-            value = checkInput();
-            if(value) {
-                nxtMove(value);
-                actionDelay();
-            }
-        }
+        }    
     }
     
-    
-
     if( status < 0 ) perror("Error");
 
     close(s);
