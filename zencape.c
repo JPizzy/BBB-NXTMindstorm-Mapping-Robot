@@ -23,7 +23,7 @@ float getVoltageReading()
 	FILE *f = fopen(A2D_FILE_VOLTAGE0, "r");
 	if (!f) {
 		printf("ERROR: Unable to open voltage input file. Cape loaded?\n");
-		printf("try:	echo BB_ADC > /sys/devices/bone_capemgr.9/slots\n");
+		printf("try:	echo BB-ADC > /sys/devices/bone_capemgr.9/slots\n");
 		exit(-1);
 	}
 
@@ -42,8 +42,10 @@ float getVoltageReading()
 }
 
 int getSpeed() {
-	//float measuredValue = getVoltageReading();
-	return 0;
+	float measuredValue = getVoltageReading();
+	int value;
+	value = ((measuredValue - 0)/(4096))*99 + 1;
+	return value;
 }
 
 /******************************************************
@@ -86,6 +88,147 @@ static int initI2cBus(char* bus, int address);
 static void writeI2cReg(int i2cFileDesc, unsigned char regAddr, unsigned char value);
 
 static int i2cFileDesc;
+static int leftDigit = 4;
+static int rightDigit = 5;
+//Actiavtes the left display;
+void activateLeft() {
+	FILE *fileName = fopen("/sys/class/gpio/gpio61/value", "w");
+	if (fileName == NULL) {
+		printf("ERROR: Unable to open export file.\n");
+		exit(1);
+	}
+	fprintf (fileName, "%d", 1);
+	fclose (fileName);
+}
+//Actiavtes right display
+void activateRight() {
+	FILE *fileName = fopen("/sys/class/gpio/gpio44/value", "w");
+	if (fileName == NULL) {
+		printf("ERROR: Unable to open export file.\n");
+		exit(1);
+	}
+	fprintf (fileName, "%d", 1);
+	fclose (fileName);
+}
+//Turns off left
+void deActivateLeft() {
+	FILE *fileName = fopen("/sys/class/gpio/gpio61/value", "w");
+	if (fileName == NULL) {
+		printf("ERROR: Unable to open export file.\n");
+		exit(1);
+	}
+	fprintf (fileName, "%d", 0);
+	fclose (fileName);
+}
+//Turns off right
+void deActivateRight() {
+	FILE *fileName = fopen("/sys/class/gpio/gpio44/value", "w");
+	if (fileName == NULL) {
+		printf("ERROR: Unable to open export file.\n");
+		exit(1);
+	}
+	fprintf (fileName, "%d", 0);
+	fclose (fileName);
+}
+
+void driveRight() {
+
+	if(rightDigit == 0) {
+		writeI2cReg(i2cFileDesc, REG_BOT, BOT_ZERO);
+		writeI2cReg(i2cFileDesc, REG_TOP, TOP_ZERO);
+	}
+	if(rightDigit == 1) {
+		writeI2cReg(i2cFileDesc, REG_BOT, BOT_ONE);
+		writeI2cReg(i2cFileDesc, REG_TOP, TOP_ONE);
+	}
+	if(rightDigit == 2) {
+		writeI2cReg(i2cFileDesc, REG_BOT, BOT_TWO);
+		writeI2cReg(i2cFileDesc, REG_TOP, TOP_TWO);	
+	}
+	if(rightDigit == 3) {
+		writeI2cReg(i2cFileDesc, REG_BOT, BOT_THREE);
+		writeI2cReg(i2cFileDesc, REG_TOP, TOP_THREE);	
+	}
+	if(rightDigit == 4) {
+		writeI2cReg(i2cFileDesc, REG_BOT, BOT_FOUR);
+		writeI2cReg(i2cFileDesc, REG_TOP, TOP_FOUR);	
+	}
+	if(rightDigit == 5) {
+		writeI2cReg(i2cFileDesc, REG_BOT, BOT_FIVE);
+		writeI2cReg(i2cFileDesc, REG_TOP, TOP_FIVE);	
+	}
+	if(rightDigit == 6) {
+		writeI2cReg(i2cFileDesc, REG_BOT, BOT_SIX);
+		writeI2cReg(i2cFileDesc, REG_TOP, TOP_SIX);	
+	}
+	if(rightDigit == 7) {
+		writeI2cReg(i2cFileDesc, REG_BOT, BOT_SEV);
+		writeI2cReg(i2cFileDesc, REG_TOP, TOP_SEV);	
+	}
+	if(rightDigit == 8) {
+		writeI2cReg(i2cFileDesc, REG_BOT, BOT_EIG);
+		writeI2cReg(i2cFileDesc, REG_TOP, TOP_EIG);	
+	}
+	if(rightDigit == 9) {
+		writeI2cReg(i2cFileDesc, REG_BOT, BOT_NINE);
+		writeI2cReg(i2cFileDesc, REG_TOP, TOP_NINE);	
+	}
+	long seconds = 0;
+	long nanoseconds = 5000000;
+	struct timespec reqDelay = {seconds, nanoseconds};
+	activateRight();
+	nanosleep(&reqDelay, (struct timespec *) NULL);
+	deActivateRight();
+}
+
+void driveLeft() {
+	if(leftDigit == 0) {
+		writeI2cReg(i2cFileDesc, REG_BOT, BOT_ZERO);
+		writeI2cReg(i2cFileDesc, REG_TOP, TOP_ZERO);
+	}
+	if(leftDigit == 1) {
+		writeI2cReg(i2cFileDesc, REG_BOT, BOT_ONE);
+		writeI2cReg(i2cFileDesc, REG_TOP, TOP_ONE);
+	}
+	if(leftDigit == 2) {
+		writeI2cReg(i2cFileDesc, REG_BOT, BOT_TWO);
+		writeI2cReg(i2cFileDesc, REG_TOP, TOP_TWO);	
+	}
+	if(leftDigit == 3) {
+		writeI2cReg(i2cFileDesc, REG_BOT, BOT_THREE);
+		writeI2cReg(i2cFileDesc, REG_TOP, TOP_THREE);	
+	}
+	if(leftDigit == 4) {
+		writeI2cReg(i2cFileDesc, REG_BOT, BOT_FOUR);
+		writeI2cReg(i2cFileDesc, REG_TOP, TOP_FOUR);	
+	}
+	if(leftDigit == 5) {
+		writeI2cReg(i2cFileDesc, REG_BOT, BOT_FIVE);
+		writeI2cReg(i2cFileDesc, REG_TOP, TOP_FIVE);	
+	}
+	if(leftDigit == 6) {
+		writeI2cReg(i2cFileDesc, REG_BOT, BOT_SIX);
+		writeI2cReg(i2cFileDesc, REG_TOP, TOP_SIX);	
+	}
+	if(leftDigit == 7) {
+		writeI2cReg(i2cFileDesc, REG_BOT, BOT_SEV);
+		writeI2cReg(i2cFileDesc, REG_TOP, TOP_SEV);	
+	}
+	if(leftDigit == 8) {
+		writeI2cReg(i2cFileDesc, REG_BOT, BOT_EIG);
+		writeI2cReg(i2cFileDesc, REG_TOP, TOP_EIG);	
+	}
+	if(leftDigit == 9) {
+		writeI2cReg(i2cFileDesc, REG_BOT, BOT_NINE);
+		writeI2cReg(i2cFileDesc, REG_TOP, TOP_NINE);	
+	}
+	long seconds = 0;
+	long nanoseconds = 5000000;
+	struct timespec reqDelay = {seconds, nanoseconds};
+	activateLeft();
+	nanosleep(&reqDelay, (struct timespec *) NULL);
+	deActivateLeft();
+}
 
 void *displayStart()
 {
@@ -98,10 +241,15 @@ void *displayStart()
 	writeI2cReg(i2cFileDesc, REG_BOT, 0x00);
 	writeI2cReg(i2cFileDesc, REG_TOP, 0x00);
 
+	deActivateRight();
+	deActivateLeft();
 	while(1) {
 	//Do stuff here
-
+		driveLeft();
+		driveRight();
 	}
+	deActivateRight();
+	deActivateLeft();
 	close(i2cFileDesc);
 }
 

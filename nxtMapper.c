@@ -466,6 +466,7 @@ int main(int argc, char **argv)
     status = connect(s, (struct sockaddr *)&addr, sizeof(addr));
        
     pthread_t joystickThread;
+    pthread_t displayThread;
 
     // send a message
     printf("status: %d\n", status);
@@ -475,7 +476,11 @@ int main(int argc, char **argv)
         // start udp listener
         UDPListener_launchThread();
         pthread_create(&joystickThread, NULL, joystickStart, NULL);
+        pthread_create(&displayThread, NULL, displayStart, NULL);
+        int test;
         while(1) {
+            test = getSpeed();
+            printf("Speed: %d\n", test);
         }    
     }
     
