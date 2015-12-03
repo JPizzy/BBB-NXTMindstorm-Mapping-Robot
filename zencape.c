@@ -88,8 +88,8 @@ static int initI2cBus(char* bus, int address);
 static void writeI2cReg(int i2cFileDesc, unsigned char regAddr, unsigned char value);
 
 static int i2cFileDesc;
-static int leftDigit = 4;
-static int rightDigit = 5;
+static int leftDigit = 0;
+static int rightDigit = 0;
 //Actiavtes the left display;
 void activateLeft() {
 	FILE *fileName = fopen("/sys/class/gpio/gpio61/value", "w");
@@ -129,6 +129,17 @@ void deActivateRight() {
 	}
 	fprintf (fileName, "%d", 0);
 	fclose (fileName);
+}
+
+void setDisplay(int distance) {
+	if (distance > 100) {
+		leftDigit = 9;
+		rightDigit = 9;
+
+	} else {
+		leftDigit = distance/10;
+		rightDigit = distance%10;
+	}
 }
 
 void driveRight() {

@@ -5,6 +5,8 @@
 
 void *displayStart();
 
+void setDisplay(int distance);
+
 void *joystickStart();
 
 int getSpeed();

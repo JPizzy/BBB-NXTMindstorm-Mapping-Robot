@@ -234,76 +234,209 @@ typedef struct {
 /******************************************************
  * Motor constants
  ******************************************************/
+static uint8_t speedForward = 0x64;
+static uint8_t speedReverse = 0x9C;
 
-static setMotor forwardA = {
-            0x0C,
-            0x00,
-            0x80,
-            0x04,
-            0x00,
-            0x64,
-            0x01,
-            0x00,
-            0x00,
-            0x20,
-            0x0F,
-            0x00,
-            0x00,
-            0x00
-        };
+#define MOTOR_LEFT  0x00
+#define MOTOR_RIGHT 0x02
+#define TACH1 0x0F
+#define TACH2 0x00
+#define MOTOR_MODE 0x01
+#define MOTOR_REG 0x00
+#define SENSOR_PORT 0x00
 
-static setMotor reverseA = {
-            0x0C,
-            0x00,
-            0x80,
-            0x04,
-            0x00,
-            0x9C,
-            0x01,
-            0x00,
-            0x00,
-            0x20,
-            0x0F,
-            0x00,
-            0x00,
-            0x00
-        };
+void scanArea() {
+    int distance;
+    setMotor rotateSensor = {
+        0x0C,   //LSB
+        0x00,   //MSB
+        0x80,   //Response
+        0x04,   //Write
+        0x01,   //Port
+        0x02,   //Power
+        0x07,   //mode
+        0x01,   //regulation
+        0x00,   //ratio
+        0x20,   //State
+        0x1E,
+        0x00,
+        0x00,
+        0x00
+    };
+    setMotor resetSensor = {
+        0x0C,   //LSB
+        0x00,   //MSB
+        0x80,   //Response
+        0x04,   //Write
+        0x01,   //Port
+        0xFE,   //Power
+        0x07,   //mode
+        0x01,   //regulation
+        0x00,   //ratio
+        0x20,   //State
+        0x68,
+        0x01,
+        0x00,
+        0x00
+    };
 
-static setMotor forwardC = {
-            0x0C,
-            0x00,
-            0x80,
-            0x04,
-            0x02,
-            0x64,
-            0x01,
-            0x00,
-            0x00,
-            0x20,
-            0x0F,
-            0x00,
-            0x00,
-            0x00
-        };
+    setSensor eyeWrite = {
+        0x05, // LSB
+        0x00, // MSB
+        0x80, // Command: Direct command requires no response
+        0x05, // Command Type: Set Input Mode
+        SENSOR_PORT, // Sensor Port: Port 1
+        0x0B, // Sensor Type: Lowspeed 9V
+        0x00  // Sensor Mode: Raw
+    };  
 
-static setMotor reverseC = {
-            0x0C,
-            0x00,
-            0x80,
-            0x04,
-            0x02,
-            0x9C,
-            0x01,
-            0x00,
-            0x00,
-            0x20,
-            0x0F,
-            0x00,
-            0x00,
-            0x00
-        };
+    lsRead ls_read = {
+        0x03,
+        0x00,
+        0x00,
+        0x10,
+        SENSOR_PORT
+    };
+
+    lsReadReturn lsReadResponse;
+    
+    lsWrite lsWriteCmd = {
+        0x07,
+        0x00,
+        0x80, // Command Type
+        0x0F, // Command
+        SENSOR_PORT, // Port
+        0x02, // Bytes to write
+        0x01, // Bytes to read
+        0x02, // I2C address of device
+        0x42  // Address of register
+    };
+    //Turn on Sensor
+    if(write(s, (const void *)&eyeWrite, (int)sizeof(eyeWrite))) {
+        printf("Sensor turned on sucessfully!\n\n");
+    }
+    else {
+        printf("Sensor not turned on! Requires more foreplay!\n\n");
+    }
+
+    for(int i = 0; i < 12; i ++) {
+        if(write(s, (const void *)&rotateSensor, (int)sizeof(rotateSensor))) {
+            printf("Motor rotating success\n\n");
+        } else {
+            printf("Motor did not rotate\n\n");
+        }
+        sleep(2);
+    
+        if(write(s, (const void *)&lsWriteCmd, (int)sizeof(lsWriteCmd))) {
+            printf("Sensor write sucessful!\n\n");
+        }
+        else {
+            printf("Sensor write did not work!\n\n");
+        }
+    
+        sleep(1); // wait for sensor
+        
+        
+        // Actually read the sensor
+        if(write(s, (const void *)&ls_read, (int)sizeof(ls_read))) {
+            printf("Sensor read sucessful!\n\n");
+        }
+        else {
+            printf("Sensor read did not work!\n\n");
+        }
+        
+        // Store the reading into the read struct
+        printf("Attempting read\n");
+        if(read(s, (void*)&lsReadResponse, (int)sizeof(lsReadResponse))) {
+            printf("Read into struct sucessful!\n\n");
+        }
+        else {
+            printf("Read into struct did not work!\n\n");
+        }
+        distance = lsReadResponse.data1;
+        printf("Distance: %d\n", distance);
+        setDisplay(distance);
+    }
+
+    if(write(s, (const void *)&resetSensor, (int)sizeof(resetSensor))) {
+            printf("Motor rotating success\n\n");
+        } else {
+            printf("Motor did not rotate\n\n");
+        }
+    sleep(10);
+}
 
 void nxtMove(int value) {
+int speed = getSpeed();
+speedForward = speed;
+speedReverse = 256 - speed;
+setMotor forwardA = {
+            0x0C,
+            0x00,
+            0x80,
+            0x04,
+            MOTOR_LEFT,
+            speedForward,
+            MOTOR_MODE,
+            MOTOR_REG,
+            0x00,
+            0x20,
+            TACH1,
+            TACH2,
+            0x00,
+            0x00
+        };
+
+setMotor reverseA = {
+            0x0C,
+            0x00,
+            0x80,
+            0x04,
+            MOTOR_LEFT,
+            speedReverse,
+            MOTOR_MODE,
+            MOTOR_REG,
+            0x00,
+            0x20,
+            TACH1,
+            TACH2,
+            0x00,
+            0x00
+        };
+
+setMotor forwardC = {
+            0x0C,
+            0x00,
+            0x80,
+            0x04,
+            MOTOR_RIGHT,
+            speedForward,
+            MOTOR_MODE,
+            MOTOR_REG,
+            0x00,
+            0x20,
+            TACH1,
+            TACH2,
+            0x00,
+            0x00
+        };
+
+setMotor reverseC = {
+            0x0C,
+            0x00,
+            0x80,
+            0x04,
+            MOTOR_RIGHT,
+            speedReverse,
+            MOTOR_MODE,
+            MOTOR_REG,
+            0x00,
+            0x20,
+            TACH1,
+            TACH2,
+            0x00,
+            0x00
+    };
     if (value == 1) {
         //Forward
         write(s, (const void *)&forwardA, (int)sizeof(forwardA));
@@ -322,6 +455,8 @@ void nxtMove(int value) {
         write(s, (const void *)&forwardC, (int)sizeof(forwardC));
         write(s, (const void *)&reverseA, (int)sizeof(reverseA));
 
+    } else if (value ==5) {
+        scanArea();
     }
 }
 /*
@@ -477,10 +612,8 @@ int main(int argc, char **argv)
         UDPListener_launchThread();
         pthread_create(&joystickThread, NULL, joystickStart, NULL);
         pthread_create(&displayThread, NULL, displayStart, NULL);
-        int test;
         while(1) {
-            test = getSpeed();
-            printf("Speed: %d\n", test);
+
         }    
     }
     
