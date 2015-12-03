@@ -13,13 +13,14 @@ h1, h2 {
 }
 
 #status-box {
-	float: right;
-	width: 250px;
+	clear: both;
+	/*width: 250px;*/
 	min-height: 150pt;
 	border: thin black solid;
 	background-color: #f3f3f3;
 	padding-left: 10pt;
 	padding-right: 10pt;
+	margin-top: 20px;
 }
 
 #left-box {
@@ -27,7 +28,19 @@ h1, h2 {
 	border: thin black solid;
 	padding-left: 10pt;
 	padding-right: 10pt;
+	padding-bottom: 10pt;
 	min-height: 150pt;
+}
+
+#right-box {
+	float: right;
+	width: 250px;
+	min-height: 150pt;
+	border: thin black solid;
+	background-color: #f3f3f3;
+	padding-left: 10pt;
+	padding-right: 10pt;
+	padding-bottom: 10pt;
 }
 
 #error-box {
@@ -39,6 +52,12 @@ h1, h2 {
 	min-height: 100pt;
 	margin-top: 20px;
 	display: none;
+}
+
+#map-canvas {
+	border: 3px #f3f3f3 ridge;
+	margin: auto;
+	display: block;
 }
 
 table {

@@ -12,14 +12,11 @@
 	<div>by Aman, Cathy, Gener and Jaspal!</div>
 	
 	<div id='content'>
-		<div id='status-box'>
-			<h2>NXT's Status</h2>
-			<div id='status'>None yet...</div>
-		</div>
 		
-		<div id='left-box'>
-			<div id='modediv'>
-				<h2>Movement</h2>
+		<div id='right-box'>
+			<h2>Movement</h2>
+			<div id='nxt-movement'>
+				<h3>NXT</h3>
 				<p>
 					<table>
 						<tr>
@@ -36,7 +33,29 @@
 				<p>
 			</div>
 			
+			<div id='eye-movement'>
+				<h3>Eye Sensor</h3>
+				<table>
+					<tr>
+						<td><input type="button" id="rotateClockwise" value="Rotate Left"/></td>
+						<td><input type="button" id="rotateCounterClockwise" value="Rotate Right"/></td>
+					</tr>
+				</table>
+			</div>
+			
 		</div>
+		
+		<div id='left-box'>
+			<h2>Map</h2>
+			<canvas id='map-canvas' width='300' height='400'>
+			</canvas>
+		</div>
+		
+		<div id='status-box'>
+			<h2>NXT's Status</h2>
+			<div id='status'>None yet...</div>
+		</div>
+		
 		<div id='error-box'>
 			<h2>Server Error</h2>
 			<p>Server error detected. Please resolve error before continuing.</p>
