@@ -3,6 +3,8 @@
 
 #define BUFFER_MAX 1024
 
+void actionDelay();
+
 void initiateMapper();
 
 void *displayStart();

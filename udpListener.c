@@ -31,10 +31,13 @@ void *UDPListen(void* arg) {
 	char moveRight[MSG_MAX_LEN];
 	char mapData[MSG_MAX_LEN];
 	char power[MSG_MAX_LEN];
+	char mappingState[MSG_MAX_LEN];
+	char clearMapBuff[MSG_MAX_LEN];
 	int xCoordinate;
 	int yCoordinate;
 	int distanceVal;
 	int powerVal;
+	int mappingStateVal;
 
 	socklen_t sin_len = sizeof(sin);
 	int bytesRx;
@@ -117,6 +120,27 @@ void *UDPListen(void* arg) {
 					perror("sendto()");
 					exit(1);
 				}
+		}
+		else if(strcmp(message, "getMappingStatus") == 0) {
+			mappingStateVal = isMapping();
+			sprintf(mappingState, "%d", mappingStateVal);
+			
+			if(sendto(socketDescriptor, mappingState, strlen(mappingState), 0,
+				(struct sockaddr*)&sin, sin_len) == -1) {
+					perror("sendto()");
+					exit(1);
+				}
+		}
+		else if(strcmp(message, "getClear") == 0) {
+			if(getClearMap()) {
+			printf("TIME TO CLEAR MAP!\n");
+			if(sendto(socketDescriptor, clearMapBuff, strlen(clearMapBuff), 0,
+				(struct sockaddr*)&sin, sin_len) == -1) {
+					perror("sendto()");
+					exit(1);
+				}
+				mapCleared();
+			}
 		}
 		else if(strcmp(message, "getMapData") == 0) {
 			if(isMapDataReady()) {

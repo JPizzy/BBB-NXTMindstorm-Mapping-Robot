@@ -243,21 +243,29 @@ typedef struct {
 static uint8_t speedForward = 0x64;
 static uint8_t speedReverse = 0x9C;
 
-#define MOTOR_LEFT  0x00
-#define MOTOR_RIGHT 0x02
-#define TACH1 0x0F
-#define TACH2 0x00
-#define MOTOR_MODE 0x01
-#define MOTOR_REG 0x00
-#define SENSOR_PORT 0x00
+
 
 static int distance = 0;
 static bool mapDataReady = false;
+static int mappingState = 0;
+static bool clearMap = false;
 static double coordinateX;
 static double coordinateY;
 
+bool getClearMap() {
+	return clearMap;
+}
+
+void mapCleared() {
+	clearMap = false;
+}
+
 bool isMapDataReady() {
 	return mapDataReady;
+}
+
+int isMapping() {
+	return mappingState;
 }
 
 void setMapDataRecieved() {
@@ -277,7 +285,13 @@ double getYCoordinate() {
 	return coordinateY;
 }
 
-
+#define MOTOR_LEFT  0x00
+#define MOTOR_RIGHT 0x02
+#define TACH1 0x00
+#define TACH2 0x00
+#define MOTOR_MODE 0x01
+#define MOTOR_REG 0x00
+#define SENSOR_PORT 0x00
 
 void scanArea() {
 	printf("Starting scan");
@@ -411,7 +425,9 @@ void scanArea() {
             printf("Motor did not rotate back to start\n\n");
         }
     sleep(10);
+    mappingState = 0;
 }
+
 
 void nxtMove(int value) {
 int speed = getSpeed();
@@ -484,25 +500,69 @@ setMotor reverseC = {
             0x00,
             0x00
     };
+setMotor stopA = {
+            0x0C,
+            0x00,
+            0x80,
+            0x04,
+            MOTOR_LEFT,
+            0x00,
+            0x02,
+            0x00,
+            0x00,
+            0x40,
+            0x0F,
+            0x00,
+            0x00,
+            0x00
+        };
+setMotor stopC = {
+            0x0C,
+            0x00,
+            0x80,
+            0x04,
+            MOTOR_RIGHT,
+            0x00,
+            0x02,
+            0x00,
+            0x00,
+            0x40,
+            0x0F,
+            0x00,
+            0x00,
+            0x00
+        };
     if (value == 1) {
         //Forward
         write(s, (const void *)&forwardA, (int)sizeof(forwardA));
         write(s, (const void *)&forwardC, (int)sizeof(forwardC));
+        actionDelay();
+ 		write(s, (const void *)&stopA, (int)sizeof(stopA));
+        write(s, (const void *)&stopC, (int)sizeof(stopC));       
     } else if (value == 2) {
         //right
         write(s, (const void *)&forwardA, (int)sizeof(forwardA));
         write(s, (const void *)&reverseC, (int)sizeof(reverseC));
-
+        actionDelay();
+ 		write(s, (const void *)&stopA, (int)sizeof(stopA));
+        write(s, (const void *)&stopC, (int)sizeof(stopC));
     } else if (value == 3) {
         //reverse
         write(s, (const void *)&reverseA, (int)sizeof(reverseA));
         write(s, (const void *)&reverseC, (int)sizeof(reverseC));
+        actionDelay();
+ 		write(s, (const void *)&stopA, (int)sizeof(stopA));
+        write(s, (const void *)&stopC, (int)sizeof(stopC));
     } else if (value == 4) {
         //left
         write(s, (const void *)&forwardC, (int)sizeof(forwardC));
         write(s, (const void *)&reverseA, (int)sizeof(reverseA));
-
+        actionDelay();
+ 		write(s, (const void *)&stopA, (int)sizeof(stopA));
+        write(s, (const void *)&stopC, (int)sizeof(stopC));
     } else if (value == 5) {
+    	mappingState = 1;
+    	clearMap = true;
         scanArea();
     }
 }

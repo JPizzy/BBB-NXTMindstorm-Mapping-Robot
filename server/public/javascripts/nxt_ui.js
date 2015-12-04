@@ -16,7 +16,9 @@ $(document).ready(function() {
 
 	// Continously check for map data and connection status
 	window.setInterval(function() {
+		sendCommand('getMappingStatus');
 		sendCommand('getMapData');
+		sendCommand('getClear');
 		sendCommand('getPower');
 		sendRequest('uptime');
 		checkServerConnection(socket);
@@ -24,6 +26,7 @@ $(document).ready(function() {
 	
 	// Set up buttons
 	$('#beginMapping').click(function() {
+		ctx.clearRect(0, 0, canvas.width, canvas.height);
 		sendCommand("beginMapping");
 	});
 	$('#moveForward').click(function() {
@@ -42,6 +45,11 @@ $(document).ready(function() {
 	socket.on('commandReply', function(result) {
 		var buffMessage = result.buffMsg;
 		console.log("Recieved reply\n");
+		
+		if(result.buffName == "getClear") {
+			console.log("CLEARING MAP");
+			ctx.clearRect(0, 0, canvas.width, canvas.height);
+		}
 
 		if(result.buffName == "getMapData") {
 			mapData = buffMessage;
@@ -52,6 +60,16 @@ $(document).ready(function() {
 		
 		if(result.buffName == "getPower") {
 			$('#powerid').val(buffMessage);
+		}
+		
+		if(result.buffName == "getMappingStatus") {
+			if(buffMessage == "0") {
+				$('#mapstatusid').text("Idle");
+			}
+			
+			if(buffMessage == "1") {
+				$('#mapstatusid').text("Active");
+			}
 		}
 		
 		});

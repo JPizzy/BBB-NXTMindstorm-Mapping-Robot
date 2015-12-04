@@ -110,14 +110,15 @@ void setDisplayToOutput() {
 		printf("ERROR: Unable to open export file.\n");
 		exit(1);
 	}
-	FILE *rightDigitFile = fopen("/sys/class/gpio/gpio61/value", "w");
+	fprintf (leftDigitFile, "out");
+	fclose (leftDigitFile);
+	
+	FILE *rightDigitFile = fopen("/sys/class/gpio/gpio61/direction", "w");
 	if (rightDigitFile == NULL) {
 		printf("ERROR: Unable to open export file.\n");
 		exit(1);
 	}
-	fprintf (leftDigitFile, "out");
 	fprintf (rightDigitFile, "out");
-	fclose (leftDigitFile);
 	fclose (rightDigitFile);
 }
 
@@ -288,6 +289,8 @@ void *displayStart()
 	//Clear Display
 	writeI2cReg(i2cFileDesc, REG_BOT, 0x00);
 	writeI2cReg(i2cFileDesc, REG_TOP, 0x00);
+	
+
 
 	deActivateRight();
 	deActivateLeft();
