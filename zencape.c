@@ -16,6 +16,18 @@
  * Potentiometer
  ******************************************************/
 #define A2D_FILE_VOLTAGE0  "/sys/bus/iio/devices/iio:device0/in_voltage0_raw"
+#define FILEPATH_DEVICE_SLOTS "/sys/devices/bone_capemgr.9/slots"
+
+void slotA2D() {
+	FILE *slotsFile = fopen(FILEPATH_DEVICE_SLOTS, "w");
+	if (slotsFile == NULL) {
+		printf("ERROR: Unable to open file: %s\n", FILEPATH_DEVICE_SLOTS);
+		exit(-1);
+	}
+	
+	fprintf(slotsFile, "%s", "BB-ADC");
+	fclose(slotsFile);
+}
 
 float getVoltageReading()
 {
@@ -86,10 +98,30 @@ int getSpeed() {
 
 static int initI2cBus(char* bus, int address);
 static void writeI2cReg(int i2cFileDesc, unsigned char regAddr, unsigned char value);
+void slotI2C();
 
 static int i2cFileDesc;
 static int leftDigit = 0;
 static int rightDigit = 0;
+
+void setDisplayToOutput() {
+	FILE *leftDigitFile = fopen("/sys/class/gpio/gpio44/direction", "w");
+	if (leftDigitFile == NULL) {
+		printf("ERROR: Unable to open export file.\n");
+		exit(1);
+	}
+	FILE *rightDigitFile = fopen("/sys/class/gpio/gpio61/value", "w");
+	if (rightDigitFile == NULL) {
+		printf("ERROR: Unable to open export file.\n");
+		exit(1);
+	}
+	fprintf (leftDigitFile, "out");
+	fprintf (rightDigitFile, "out");
+	fclose (leftDigitFile);
+	fclose (rightDigitFile);
+}
+
+
 //Actiavtes the left display;
 void activateLeft() {
 	FILE *fileName = fopen("/sys/class/gpio/gpio61/value", "w");
@@ -243,6 +275,11 @@ void driveLeft() {
 
 void *displayStart()
 {
+
+	slotA2D();
+	slotI2C();
+	setDisplayToOutput();
+	
 	i2cFileDesc = initI2cBus(I2CDRV_LINUX_BUS2, I2C_DEVICE_ADDRESS);
 
 	writeI2cReg(i2cFileDesc, REG_DIRA, 0x00);
@@ -264,7 +301,16 @@ void *displayStart()
 	close(i2cFileDesc);
 }
 
-
+void slotI2C() {
+	FILE *slotsFile = fopen(FILEPATH_DEVICE_SLOTS, "w");
+	if (slotsFile == NULL) {
+		printf("ERROR: Unable to open file: %s\n", FILEPATH_DEVICE_SLOTS);
+		exit(-1);
+	}
+	
+	fprintf(slotsFile, "%s", "BB-I2C1");
+	fclose(slotsFile);
+}
 
 //Dr. Brian Frasers code to open bus for read/write
 static int initI2cBus(char* bus, int address)

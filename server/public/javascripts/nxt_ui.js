@@ -2,14 +2,17 @@
 // Client-side interactions with the browser.
 
 var serverNotConnectedErrorShown = false;
+var mapData = 0;
 
 // Make connection to server when web page is fully loaded.
 var socket = io.connect();
 $(document).ready(function() {
 
+console.log("testing log statements");
+
 	// Continously check for map data and connection status
 	window.setInterval(function() {
-		sendRequest('getMapData');
+		sendCommand('getMapData');
 		sendRequest('uptime');
 		checkServerConnection(socket);
 	}, 1000);
@@ -33,6 +36,23 @@ $(document).ready(function() {
 	$('#rotateCounterClockwise').click(function() {
 		sendCommand("rotateCounterClockwise");
 	});
+	$('#speedDown').click(function() {
+		sendCommand("speedDown");
+	});
+	$('#speedUp').click(function() {
+		sendCommand("speedUp");
+	});
+	
+	socket.on('commandReply', function(result) {
+		var buffMessage = result.buffMsg;
+		console.log("Recieved reply\n");
+
+		if(result.buffName == "getMapData") {
+			mapData = buffMessage;
+			console.log(mapData);
+		}
+		
+		});
 
 	// Handle data coming back from the server
 	socket.on('fileContents', function(result) {
@@ -66,7 +86,7 @@ function sendCommand(message) {
 };
 
 function sendRequest(file) {
-	console.log("Requesting '" + file + "'");
+	//console.log("Requesting '" + file + "'");
 	socket.emit('proc', file);
 }
 
@@ -106,7 +126,7 @@ function mapDistance(centimeters) {
 
 function centimetersToPx(centimeters) {
 	var canvas = document.getElementById('map-canvas');
-	var nxtMaxRange = 200;
+	var nxtMaxRange = 100;
 	return (canvas.height/2) * (centimeters/nxtMaxRange);
 }
 

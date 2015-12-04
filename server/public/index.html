@@ -13,9 +13,17 @@
 	
 	<div id='content'>
 		<div id='right-box'>
+			<div id='mapping-control'>
+				<h2>Mapping</h2>
+				<p align='center'>
+					<input type="button" id="beginMapping" value="Start Mapping"/>
+				</p>
+			</div>
+			
+			<hr>
+		
 			<h2>Movement</h2>
 			<div id='nxt-movement'>
-				<h3>NXT</h3>
 				<p>
 					<table>
 						<tr>
@@ -33,17 +41,19 @@
 							</td>
 						</tr>
 					</table>
-				<p>
+				</p>
 			</div>
 			
-			<div id='eye-movement'>
-				<h3>Eye Sensor</h3>
-				<table>
-					<tr>
-						<td><input type="button" id="rotateClockwise" value="Rotate Left"/></td>
-						<td><input type="button" id="rotateCounterClockwise" value="Rotate Right"/></td>
-					</tr>
-				</table>
+			<hr>
+			
+			<div id='speed'>
+				<h2>Speed</h2>
+				<p align='center'>
+					<input type="button" id="speedDown" value=" - "/>
+					<input type="text"   id="speedid" value="???" size="3" readonly/>
+					<input type="button" id="speedUp" value=" + "/>
+					(0 - 100)
+				</p>
 			</div>
 		</div>
 		

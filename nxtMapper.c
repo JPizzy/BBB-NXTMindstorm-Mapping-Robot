@@ -8,6 +8,7 @@
 #include <bluetooth/rfcomm.h>
 #include "udpListener.h"
 #include "zencape.h"
+#include <stdbool.h>
 
 #define JOYSTICK_PRESSED_PIN 27
 #define JOYSTICK_UP_PIN 26
@@ -245,8 +246,24 @@ static uint8_t speedReverse = 0x9C;
 #define MOTOR_REG 0x00
 #define SENSOR_PORT 0x00
 
+static int distance = 0;
+static bool mapDataReady = false;
+
+bool isMapDataReady() {
+	return mapDataReady;
+}
+
+void setMapDataRecieved() {
+	mapDataReady = false;
+}
+
+int getDistanceValue() {
+	mapDataReady = false;
+	return distance;
+}
+
 void scanArea() {
-    int distance;
+	printf("Starting scan");
     setMotor rotateSensor = {
         0x0C,   //LSB
         0x00,   //MSB
@@ -258,7 +275,7 @@ void scanArea() {
         0x01,   //regulation
         0x00,   //ratio
         0x20,   //State
-        0x1E,
+        0x0A,   //tach
         0x00,
         0x00,
         0x00
@@ -312,56 +329,67 @@ void scanArea() {
         0x42  // Address of register
     };
     //Turn on Sensor
-    if(write(s, (const void *)&eyeWrite, (int)sizeof(eyeWrite))) {
-        printf("Sensor turned on sucessfully!\n\n");
-    }
-    else {
+    if(!write(s, (const void *)&eyeWrite, (int)sizeof(eyeWrite))) {
         printf("Sensor not turned on! Requires more foreplay!\n\n");
     }
+    
+    long delayInSeconds = 0;
+	long delayInNanoseconds = 500000000;
+	bool validDistance;
+	int readingCounter;
 
-    for(int i = 0; i < 12; i ++) {
-        if(write(s, (const void *)&rotateSensor, (int)sizeof(rotateSensor))) {
-            printf("Motor rotating success\n\n");
-        } else {
+    for(int i = 0; i < 36; i ++) {
+    	readingCounter = 0;
+    	validDistance = false;
+        if(!write(s, (const void *)&rotateSensor, (int)sizeof(rotateSensor))) {
             printf("Motor did not rotate\n\n");
         }
-        sleep(2);
+        
+        nanosleep((const struct timespec[]){{delayInSeconds, delayInNanoseconds}}, NULL);
+        //sleep(1);
+    	
+    	while(!validDistance && readingCounter < 3) {
+        	if(!write(s, (const void *)&lsWriteCmd, (int)sizeof(lsWriteCmd))) {
+            	printf("Sensor write did not work!\n\n");
+        	}
     
-        if(write(s, (const void *)&lsWriteCmd, (int)sizeof(lsWriteCmd))) {
-            printf("Sensor write sucessful!\n\n");
-        }
-        else {
-            printf("Sensor write did not work!\n\n");
-        }
-    
-        sleep(1); // wait for sensor
+    		nanosleep((const struct timespec[]){{delayInSeconds, delayInNanoseconds}}, NULL);
+        	//sleep(1); // wait for sensor
         
         
-        // Actually read the sensor
-        if(write(s, (const void *)&ls_read, (int)sizeof(ls_read))) {
-            printf("Sensor read sucessful!\n\n");
-        }
-        else {
-            printf("Sensor read did not work!\n\n");
-        }
+        	// Actually read the sensor
+        	if(!write(s, (const void *)&ls_read, (int)sizeof(ls_read))) {
+            	printf("Sensor read did not work!\n\n");
+        	}
         
-        // Store the reading into the read struct
-        printf("Attempting read\n");
-        if(read(s, (void*)&lsReadResponse, (int)sizeof(lsReadResponse))) {
-            printf("Read into struct sucessful!\n\n");
+        	// Store the reading into the read struct
+        	if(!read(s, (void*)&lsReadResponse, (int)sizeof(lsReadResponse))) {
+           	 printf("Read into struct did not work!\n\n");
+       		}
+       		if(!validDistance) {
+        		distance = lsReadResponse.data1;
+        		if(distance < 3 || distance > 175) {
+        			readingCounter++;
+        		}
+        		else {
+        			validDistance = true;
+        		}
+        	}
         }
-        else {
-            printf("Read into struct did not work!\n\n");
-        }
-        distance = lsReadResponse.data1;
-        printf("Distance: %d\n", distance);
-        setDisplay(distance);
+        if(!validDistance) {
+			distance = 255;
+		}
+		//Send to mapper
+		printf("%d\n", distance);
+		mapDataReady = true;
+		
+		setDisplay(distance);
     }
 
     if(write(s, (const void *)&resetSensor, (int)sizeof(resetSensor))) {
             printf("Motor rotating success\n\n");
         } else {
-            printf("Motor did not rotate\n\n");
+            printf("Motor did not rotate back to start\n\n");
         }
     sleep(10);
 }
