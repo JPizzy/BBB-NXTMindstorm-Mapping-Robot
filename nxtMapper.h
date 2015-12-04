@@ -5,5 +5,7 @@ void nxtMove(int value);
 bool isMapDataReady();
 void setMapDataRecieved();
 int getDistanceValue();
+double getXCoordinate();
+double getYCoordinate();
 
 #endif

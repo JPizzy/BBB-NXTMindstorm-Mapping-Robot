@@ -4,20 +4,28 @@
 var serverNotConnectedErrorShown = false;
 var mapData = 0;
 
+var canvas;
+var ctx;
+
 // Make connection to server when web page is fully loaded.
 var socket = io.connect();
 $(document).ready(function() {
 
-console.log("testing log statements");
+	canvas = document.getElementById('map-canvas');
+	ctx = canvas.getContext('2d');
 
 	// Continously check for map data and connection status
 	window.setInterval(function() {
 		sendCommand('getMapData');
+		sendCommand('getPower');
 		sendRequest('uptime');
 		checkServerConnection(socket);
 	}, 1000);
 	
 	// Set up buttons
+	$('#beginMapping').click(function() {
+		sendCommand("beginMapping");
+	});
 	$('#moveForward').click(function() {
 		sendCommand("moveForward");
 	});
@@ -30,18 +38,6 @@ console.log("testing log statements");
 	$('#moveRight').click(function() {
 		sendCommand("moveRight");
 	});
-	$('#rotateClockwise').click(function() {
-		sendCommand("rotateClockwise");
-	});
-	$('#rotateCounterClockwise').click(function() {
-		sendCommand("rotateCounterClockwise");
-	});
-	$('#speedDown').click(function() {
-		sendCommand("speedDown");
-	});
-	$('#speedUp').click(function() {
-		sendCommand("speedUp");
-	});
 	
 	socket.on('commandReply', function(result) {
 		var buffMessage = result.buffMsg;
@@ -49,7 +45,13 @@ console.log("testing log statements");
 
 		if(result.buffName == "getMapData") {
 			mapData = buffMessage;
-			console.log(mapData);
+			var data = mapData.split(' ');
+			//console.log("(" + data[1] + "," + data[2] + ")");
+			mapDistance(data[1], data[2]);
+		}
+		
+		if(result.buffName == "getPower") {
+			$('#powerid').val(buffMessage);
 		}
 		
 		});
@@ -115,25 +117,22 @@ function checkServerConnection(socket) {
 // M A P P I N G
 //////////////////////////////////////////////////////////////
 
-function mapDistance(centimeters) {
-	var canvas = document.getElementById('map-canvas');
-	var ctx = canvas.getContext('2d');
+function mapDistance(xVal, yVal) {
 	var nxtX = canvas.width/2;
 	var nxtY = canvas.height/2;
-	var pixelToDraw = centimetersToPx(centimeters);
-	drawDataPoint(nxtX, pixelToDraw);
+	var x = centimetersToPx(xVal) + nxtX;
+	var y = (-1) * centimetersToPx(yVal) + nxtY;
+	console.log("(" + x + "," + y + ")");
+	drawDataPoint(x, y);
 }
 
 function centimetersToPx(centimeters) {
-	var canvas = document.getElementById('map-canvas');
-	var nxtMaxRange = 100;
-	return (canvas.height/2) * (centimeters/nxtMaxRange);
+	var nxtMaxRange = 255;
+	return ((canvas.height/2) * (centimeters/nxtMaxRange));
 }
 
 function drawDataPoint(x, y) {
 	var pxSize = 4;
 	var offset = pxSize/2;
-	var canvas = document.getElementById('map-canvas');
-	var ctx = canvas.getContext('2d');
 	ctx.fillRect((x-offset), (y-offset), pxSize, pxSize);
 }

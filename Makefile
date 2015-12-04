@@ -8,7 +8,7 @@ CFLAGS = -Wall -g -std=c99 -D _POSIX_C_SOURCE=200809L -Werror
 SOURCES = nxtMapper.c udpListener.c zencape.c
 
 all: node
-	$(CC_C) $(CFLAGS) $(SOURCES) -o $(OUTDIR)/$(TARGET) -lbluetooth -lpthread
+	$(CC_C) $(CFLAGS) $(SOURCES) -o $(OUTDIR)/$(TARGET) -lbluetooth -lm -lpthread
 	
 node:
 	mkdir -p $(PUBDIR)/nxt-server-copy/ 

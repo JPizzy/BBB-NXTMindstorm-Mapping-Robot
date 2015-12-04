@@ -1,6 +1,7 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <time.h>
+#include <math.h>
 #include <unistd.h>
 #include <pthread.h>
 #include <sys/socket.h>
@@ -10,6 +11,9 @@
 #include "zencape.h"
 #include <stdbool.h>
 
+#define MAX_READS 5
+
+#define M_PI 3.14159265359
 #define JOYSTICK_PRESSED_PIN 27
 #define JOYSTICK_UP_PIN 26
 #define JOYSTICK_DOWN_PIN 46
@@ -24,6 +28,8 @@
 #define FILEPATH_RIGHT_VALUE "/sys/class/gpio/gpio47/value" 
 #define FILEPATH_LEFTDISPLAY_VALUE "/sys/class/gpio61/value"
 #define FILEPATH_RIGHTDISPLAY_VALUE "/sys/class/gpio44/value"
+
+void calculateCoordinates(int cm, int angleIndex);
 
 void exportPin(int pin)
 {
@@ -47,7 +53,6 @@ void initializePins()
     exportPin(DISPLAY_LEFT_PIN);
     exportPin(DISPLAY_RIGHT_PIN);
 }
-
 
 //Socket for bluetooth
 static int s;
@@ -248,6 +253,8 @@ static uint8_t speedReverse = 0x9C;
 
 static int distance = 0;
 static bool mapDataReady = false;
+static double coordinateX;
+static double coordinateY;
 
 bool isMapDataReady() {
 	return mapDataReady;
@@ -261,6 +268,16 @@ int getDistanceValue() {
 	mapDataReady = false;
 	return distance;
 }
+
+double getXCoordinate() {
+	return coordinateX;
+}
+
+double getYCoordinate() {
+	return coordinateY;
+}
+
+
 
 void scanArea() {
 	printf("Starting scan");
@@ -348,7 +365,7 @@ void scanArea() {
         nanosleep((const struct timespec[]){{delayInSeconds, delayInNanoseconds}}, NULL);
         //sleep(1);
     	
-    	while(!validDistance && readingCounter < 3) {
+    	while(!validDistance && readingCounter < MAX_READS) {
         	if(!write(s, (const void *)&lsWriteCmd, (int)sizeof(lsWriteCmd))) {
             	printf("Sensor write did not work!\n\n");
         	}
@@ -381,6 +398,8 @@ void scanArea() {
 		}
 		//Send to mapper
 		printf("%d\n", distance);
+		while(mapDataReady) {printf("Waiting for data"); sleep(1);}
+		calculateCoordinates(distance, i);
 		mapDataReady = true;
 		
 		setDisplay(distance);
@@ -483,131 +502,50 @@ setMotor reverseC = {
         write(s, (const void *)&forwardC, (int)sizeof(forwardC));
         write(s, (const void *)&reverseA, (int)sizeof(reverseA));
 
-    } else if (value ==5) {
+    } else if (value == 5) {
         scanArea();
     }
 }
-/*
-#define SENSOR_PORT 0x00
-void *EyeSensor(void* arg) {
-	printf("Started eye sensor thread!\n");
-	setSensor eyeWrite = {
-		0x05, // LSB
-        0x00, // MSB
-        0x80, // Command: Direct command requires no response
-        0x05, // Command Type: Set Input Mode
-        SENSOR_PORT, // Sensor Port: Port 1
-        0x0B, // Sensor Type: Lowspeed 9V
-        0x00  // Sensor Mode: Raw
-	};	
 
-	lsRead ls_read = {
-		0x03,
-		0x00,
-		0x00,
-		0x10,
-		SENSOR_PORT
-	};
 
-	lsReadReturn lsReadResponse;
-	
-	lsWrite lsWriteCmd = {
-		0x07,
-		0x00,
-		0x80, // Command Type
-		0x0F, // Command
-		SENSOR_PORT, // Port
-		0x02, // Bytes to write
-		0x01, // Bytes to read
-		0x02, // I2C address of device
-		0x42  // Address of register
-	};
-	
-	// Turn on sensor
-	if(write(s, (const void *)&eyeWrite, (int)sizeof(eyeWrite))) {
-		printf("Sensor turned on sucessfully!\n\n");
+double degreesToRadians(int degrees) {
+	return degrees * (M_PI/180.0);
+}
+
+void calculateCoordinates(int cm, int angleIndex) {
+	if(angleIndex == 0) {
+		coordinateX = 0;
+		coordinateY = cm;
 	}
-	else {
-		printf("Sensor not turned on! Requires more foreplay!\n\n");
+	else if(angleIndex > 0 && angleIndex < 9) {
+		coordinateX = (-1) * cm * sin(degreesToRadians((angleIndex * 10)));
+		coordinateY = cm * cos(degreesToRadians((angleIndex * 10)));
 	}
-	
-	while(1) {
-		// Write to sensor that you want to read
-		if(write(s, (const void *)&lsWriteCmd, (int)sizeof(lsWriteCmd))) {
-			printf("Sensor write sucessful!\n\n");
-		}
-		else {
-			printf("Sensor write did not work!\n\n");
-		}
-	
-		sleep(1); // wait for sensor
-		
-		
-		// Actually read the sensor
-		if(write(s, (const void *)&ls_read, (int)sizeof(ls_read))) {
-			printf("Sensor read sucessful!\n\n");
-		}
-		else {
-			printf("Sensor read did not work!\n\n");
-		}
-		
-		// Store the reading into the read struct
-		printf("Attempting read\n");
-		if(read(s, (void*)&lsReadResponse, (int)sizeof(lsReadResponse))) {
-			printf("Read into struct sucessful!\n\n");
-		}
-		else {
-			printf("Read into struct did not work!\n\n");
-		} 
-
-		printf(" \
-        LSB:         %x\n \
-        MSB:         %x\n \
-        0x02:        %x\n \
-        0x10:        %x\n \
-        Status:      %x\n \
-        Bytes read:  %x\n \
-        Data1:       %x\n \
-        Data2:       %x\n \
-        Data3:       %x\n \
-        Data4:       %x\n \
-        Data5:       %x\n \
-        Data6:       %x\n \
-        Data7:       %x\n \
-        Data8:       %x\n \
-        Data9:       %x\n \
-        Data10:      %x\n \
-        Data11:      %x\n \
-        Data12:      %x\n \
-        Data13:      %x\n \
-        Data14:      %x\n \
-        Data15:      %x\n \
-        Data16:      %x\n ",
-		lsReadResponse.lsb,
-		lsReadResponse.msb,
-		lsReadResponse.response,
-		lsReadResponse.command,
-		lsReadResponse.status,
-		lsReadResponse.bytesRead,
-		lsReadResponse.data1,
-        lsReadResponse.data2,
-		lsReadResponse.data3,
-        lsReadResponse.data4,
-        lsReadResponse.data5,
-        lsReadResponse.data6,
-        lsReadResponse.data7,
-        lsReadResponse.data8,
-        lsReadResponse.data9,
-        lsReadResponse.data10,
-        lsReadResponse.data11,
-        lsReadResponse.data12,
-        lsReadResponse.data13,
-        lsReadResponse.data14,
-        lsReadResponse.data15,
-        lsReadResponse.data16);
+	else if(angleIndex == 9) {
+		coordinateX = -cm;
+		coordinateY = 0;
+	}
+	else if(angleIndex > 9 && angleIndex < 18) {
+		coordinateX = (-1) * cm * cos(degreesToRadians(((angleIndex - 9) * 10)));
+		coordinateY = (-1) * cm * sin(degreesToRadians(((angleIndex - 9) * 10)));
+	}
+	else if(angleIndex == 18) {
+		coordinateX = 0;
+		coordinateY = -cm;
+	}
+	else if(angleIndex > 18 && angleIndex < 27) {
+		coordinateX = cm * sin(degreesToRadians(((angleIndex - 18) * 10)));
+		coordinateY = (-1) * cm * cos(degreesToRadians(((angleIndex - 18) * 10)));
+	}
+	else if(angleIndex == 27) {
+		coordinateX = cm;
+		coordinateY = 0;
+	} else if (angleIndex > 27) {
+		coordinateX = cm * cos(degreesToRadians(((angleIndex - 27) * 10)));
+		coordinateY = cm * sin(degreesToRadians(((angleIndex - 27) * 10)));
 	}
 }
-*/
+
 int main(int argc, char **argv)
 {
 

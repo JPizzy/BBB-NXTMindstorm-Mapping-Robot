@@ -56,7 +56,7 @@ float getVoltageReading()
 int getSpeed() {
 	float measuredValue = getVoltageReading();
 	int value;
-	value = ((measuredValue - 0)/(4096))*99 + 1;
+	value = ((((measuredValue - 0)/(4096))*99 + 1)/2) + 50;
 	return value;
 }
 
@@ -346,7 +346,11 @@ static void writeI2cReg(int i2cFileDesc, unsigned char regAddr, unsigned char va
 /******************************************************
  * JoyStick
  ******************************************************/
+static bool mapButtonPressed = false;
 
+void initiateMapper() {
+	mapButtonPressed = true;
+}
 
 int checkInput() {
     char buff[BUFFER_MAX];
@@ -412,29 +416,34 @@ int checkInput() {
     return 0;
 }
 
-//Wait 10ms
+//Wait 50ms
 void pollDelay() {
     long seconds = 0;
-    long nanoseconds = 10000000;
+    long nanoseconds = 50000000;
     struct timespec reqDelay = {seconds, nanoseconds};
     nanosleep(&reqDelay, (struct timespec *) NULL);
 }
 
-//Wait 100ms
+//Wait 250ms
 void actionDelay() {
     long seconds = 0;
-    long nanoseconds = 100000000;
+    long nanoseconds = 250000000;
     struct timespec reqDelay = {seconds, nanoseconds};
     nanosleep(&reqDelay, (struct timespec *) NULL);
 }
- void *joystickStart() {
- 	int value;
+
+void *joystickStart() {
+	int value;
  	while(1) {
  		pollDelay();
  		value = checkInput();
  		if(value) {
  			nxtMove(value);
  			actionDelay();
+ 		}
+ 		else if(mapButtonPressed) {
+ 			nxtMove(5);
+ 			mapButtonPressed = false;
  		}
  	}
  }

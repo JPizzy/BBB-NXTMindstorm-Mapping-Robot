@@ -8,6 +8,7 @@
 #include <string.h>
 #include <ctype.h>
 #include "nxtMapper.h"
+#include "zencape.h"
 
 #define PORT 12345
 #define MSG_MAX_LEN 1024
@@ -16,18 +17,24 @@
 #define RIGHT 2
 #define BACKWARD 3
 #define LEFT 4
+#define MAPPING 5
 
 void *UDPListen(void* arg) {
 	
 	struct sockaddr_in sin;
 	char message[MSG_MAX_LEN];
 	char upTime[MSG_MAX_LEN] = {"/proc/uptime"};
+	char beginMapping[MSG_MAX_LEN];
 	char moveForward[MSG_MAX_LEN];
 	char moveBackward[MSG_MAX_LEN];
 	char moveLeft[MSG_MAX_LEN];
 	char moveRight[MSG_MAX_LEN];
 	char mapData[MSG_MAX_LEN];
+	char power[MSG_MAX_LEN];
+	int xCoordinate;
+	int yCoordinate;
 	int distanceVal;
+	int powerVal;
 
 	socklen_t sin_len = sizeof(sin);
 	int bytesRx;
@@ -56,6 +63,14 @@ void *UDPListen(void* arg) {
 
 		if(strcmp(message, "uptime") == 0) {
 			if(sendto(socketDescriptor, upTime, strlen(upTime), 0,
+				(struct sockaddr*)&sin, sin_len) == -1) {
+					perror("sendto()");
+					exit(1);
+				}
+		}
+		else if(strcmp(message, "beginMapping") == 0) {
+			initiateMapper();
+			if(sendto(socketDescriptor, beginMapping, strlen(beginMapping), 0,
 				(struct sockaddr*)&sin, sin_len) == -1) {
 					perror("sendto()");
 					exit(1);
@@ -93,10 +108,23 @@ void *UDPListen(void* arg) {
 					exit(1);
 				}
 		}
+		else if(strcmp(message, "getPower") == 0) {
+			powerVal = getSpeed();
+			sprintf(power, "%d", powerVal);
+			
+			if(sendto(socketDescriptor, power, strlen(power), 0,
+				(struct sockaddr*)&sin, sin_len) == -1) {
+					perror("sendto()");
+					exit(1);
+				}
+		}
 		else if(strcmp(message, "getMapData") == 0) {
 			if(isMapDataReady()) {
+				// Change to double if more percision is required
+				xCoordinate = getXCoordinate();
+				yCoordinate = getYCoordinate();
 				distanceVal = getDistanceValue();
-				sprintf(mapData, "%d", distanceVal);
+				sprintf(mapData, "%d %d %d", distanceVal, xCoordinate, yCoordinate);
 				
 				if(sendto(socketDescriptor, mapData, strlen(mapData), 0,
 				(struct sockaddr*)&sin, sin_len) == -1) {
