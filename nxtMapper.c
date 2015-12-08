@@ -30,32 +30,7 @@
 #define FILEPATH_RIGHTDISPLAY_VALUE "/sys/class/gpio44/value"
 
 void calculateCoordinates(int cm, int angleIndex);
-
-void exportPin(int pin)
-{
-	FILE *pfile = fopen("/sys/class/gpio/export", "w");
-	if (pfile == NULL) {
-		printf("ERROR: Unable to open export file.\n");
-		exit(1);
-	}
-	
-	fprintf(pfile, "%d", pin);
-	fclose(pfile);
-}
-
-void initializePins()
-{
-	exportPin(JOYSTICK_PRESSED_PIN);
-	exportPin(JOYSTICK_UP_PIN);
-	exportPin(JOYSTICK_DOWN_PIN);
-	exportPin(JOYSTICK_LEFT_PIN);
-	exportPin(JOYSTICK_RIGHT_PIN);
-    exportPin(DISPLAY_LEFT_PIN);
-    exportPin(DISPLAY_RIGHT_PIN);
-}
-
-//Socket for bluetooth
-static int s;
+static int s; //Socket for bluetooth
 
 /******************************************************
  * Structs
@@ -238,62 +213,52 @@ typedef struct {
 }__attribute__((packed)) lsReadReturn;
 
 /******************************************************
- * Motor constants
+ * GPIO Pin Initialization
  ******************************************************/
-static uint8_t speedForward = 0x64;
-static uint8_t speedReverse = 0x9C;
+void exportPin(int pin)
+{
+	FILE *pfile = fopen("/sys/class/gpio/export", "w");
+	if (pfile == NULL) {
+		printf("ERROR: Unable to open export file.\n");
+		exit(1);
+	}
+	
+	fprintf(pfile, "%d", pin);
+	fclose(pfile);
+}
 
+void initializePins()
+{
+	exportPin(JOYSTICK_PRESSED_PIN);
+	exportPin(JOYSTICK_UP_PIN);
+	exportPin(JOYSTICK_DOWN_PIN);
+	exportPin(JOYSTICK_LEFT_PIN);
+	exportPin(JOYSTICK_RIGHT_PIN);
+    exportPin(DISPLAY_LEFT_PIN);
+    exportPin(DISPLAY_RIGHT_PIN);
+}
 
+/******************************************************
+ * Ultra Sonic Sensor
+ ******************************************************/
+#define SENSOR_PORT 0x00
+#define TIME_TO_RESET_SENSOR 12
+#define MAP_TICKS 36
+#define MIN_READ_DISTANCE 3
+#define MAX_READ_DISTANCE 175
+#define MAX_DISTANCE 255
 
 static int distance = 0;
 static bool mapDataReady = false;
 static int mappingState = 0;
 static bool clearMap = false;
-static double coordinateX;
-static double coordinateY;
-
-bool getClearMap() {
-	return clearMap;
-}
-
-void mapCleared() {
-	clearMap = false;
-}
-
-bool isMapDataReady() {
-	return mapDataReady;
-}
-
-int isMapping() {
-	return mappingState;
-}
-
-void setMapDataRecieved() {
-	mapDataReady = false;
-}
-
-int getDistanceValue() {
-	mapDataReady = false;
-	return distance;
-}
-
-double getXCoordinate() {
-	return coordinateX;
-}
-
-double getYCoordinate() {
-	return coordinateY;
-}
-
-#define MOTOR_LEFT  0x00
-#define MOTOR_RIGHT 0x02
-#define TACH1 0x00
-#define TACH2 0x00
-#define MOTOR_MODE 0x01
-#define MOTOR_REG 0x00
-#define SENSOR_PORT 0x00
 
 void scanArea() {
+	long delayInSeconds = 0;
+	long delayInNanoseconds = 500000000;
+	bool validDistance;
+	int readingCounter;
+	
 	printf("Starting scan");
     setMotor rotateSensor = {
         0x0C,   //LSB
@@ -363,13 +328,8 @@ void scanArea() {
     if(!write(s, (const void *)&eyeWrite, (int)sizeof(eyeWrite))) {
         printf("Sensor not turned on! Requires more foreplay!\n\n");
     }
-    
-    long delayInSeconds = 0;
-	long delayInNanoseconds = 500000000;
-	bool validDistance;
-	int readingCounter;
-
-    for(int i = 0; i < 36; i ++) {
+	
+    for(int i = 0; i < MAP_TICKS; i ++) {
     	readingCounter = 0;
     	validDistance = false;
         if(!write(s, (const void *)&rotateSensor, (int)sizeof(rotateSensor))) {
@@ -377,7 +337,6 @@ void scanArea() {
         }
         
         nanosleep((const struct timespec[]){{delayInSeconds, delayInNanoseconds}}, NULL);
-        //sleep(1);
     	
     	while(!validDistance && readingCounter < MAX_READS) {
         	if(!write(s, (const void *)&lsWriteCmd, (int)sizeof(lsWriteCmd))) {
@@ -385,8 +344,6 @@ void scanArea() {
         	}
     
     		nanosleep((const struct timespec[]){{delayInSeconds, delayInNanoseconds}}, NULL);
-        	//sleep(1); // wait for sensor
-        
         
         	// Actually read the sensor
         	if(!write(s, (const void *)&ls_read, (int)sizeof(ls_read))) {
@@ -399,7 +356,7 @@ void scanArea() {
        		}
        		if(!validDistance) {
         		distance = lsReadResponse.data1;
-        		if(distance < 3 || distance > 175) {
+        		if(distance < MIN_READ_DISTANCE || distance > MAX_READ_DISTANCE) {
         			readingCounter++;
         		}
         		else {
@@ -408,11 +365,14 @@ void scanArea() {
         	}
         }
         if(!validDistance) {
-			distance = 255;
+			distance = MAX_DISTANCE;
 		}
 		//Send to mapper
 		printf("%d\n", distance);
-		while(mapDataReady) {printf("Waiting for data"); sleep(1);}
+		while(mapDataReady) {
+			printf("Waiting for data"); 
+			sleep(1);
+		}
 		calculateCoordinates(distance, i);
 		mapDataReady = true;
 		
@@ -424,10 +384,79 @@ void scanArea() {
         } else {
             printf("Motor did not rotate back to start\n\n");
         }
-    sleep(10);
+    sleep(TIME_TO_RESET_SENSOR);
     mappingState = 0;
 }
 
+/******************************************************
+ * Mapping
+ ******************************************************/
+#define DEGREES_IN_PI 180.0
+#define ANGLE_INCREMENT_DEGREES 10
+#define NEGATATE -1
+#define CCS_NORTH 0
+#define CCS_WEST 9
+#define CCS_SOUTH 18
+#define CCS_EAST 27
+
+static double coordinateX;
+static double coordinateY;
+
+double degreesToRadians(int degrees) {
+	return degrees * (M_PI/DEGREES_IN_PI);
+}
+
+void calculateCoordinates(int cm, int angleIndex) {
+	if(angleIndex == CCS_NORTH) {
+		coordinateX = 0;
+		coordinateY = cm;
+	}
+	else if(angleIndex > CCS_NORTH && angleIndex < CCS_WEST) {
+		coordinateX = (NEGATATE) * cm * sin(degreesToRadians((angleIndex * ANGLE_INCREMENT_DEGREES)));
+		coordinateY = cm * cos(degreesToRadians((angleIndex * ANGLE_INCREMENT_DEGREES)));
+	}
+	else if(angleIndex == CCS_WEST) {
+		coordinateX = (NEGATATE) * cm;
+		coordinateY = 0;
+	}
+	else if(angleIndex > CCS_WEST && angleIndex < CSS_SOUTH) {
+		coordinateX = (NEGATATE) * cm * cos(degreesToRadians(((angleIndex - CCS_WEST) * ANGLE_INCREMENT_DEGREES)));
+		coordinateY = (NEGATATE) * cm * sin(degreesToRadians(((angleIndex - CCS_WEST) * ANGLE_INCREMENT_DEGREES)));
+	}
+	else if(angleIndex == CCS_SOUTH) {
+		coordinateX = 0;
+		coordinateY = (NEGATATE) * cm;
+	}
+	else if(angleIndex > CCS_SOUTH && angleIndex < CSS_EAST) {
+		coordinateX = cm * sin(degreesToRadians(((angleIndex - CCS_SOUTH) * ANGLE_INCREMENT_DEGREES)));
+		coordinateY = (NEGATATE) * cm * cos(degreesToRadians(((angleIndex - CCS_SOUTH) * ANGLE_INCREMENT_DEGREES)));
+	}
+	else if(angleIndex == CSS_EAST) {
+		coordinateX = cm;
+		coordinateY = 0;
+	} else if (angleIndex > CSS_EAST) {
+		coordinateX = cm * cos(degreesToRadians(((angleIndex - CSS_EAST) * ANGLE_INCREMENT_DEGREES)));
+		coordinateY = cm * sin(degreesToRadians(((angleIndex - CSS_EAST) * ANGLE_INCREMENT_DEGREES)));
+	}
+}
+
+/******************************************************
+ * Movement
+ ******************************************************/
+#define MOTOR_LEFT  0x00
+#define MOTOR_RIGHT 0x02
+#define TACH1 0x00
+#define TACH2 0x00
+#define MOTOR_MODE 0x01
+#define MOTOR_REG 0x00
+#define FORWARD 1
+#define RIGHT 2
+#define REVERSE 3
+#define LEFT 4
+#define MAPPING 5
+
+static uint8_t speedForward = 0x64;
+static uint8_t speedReverse = 0x9C;
 
 void nxtMove(int value) {
 int speed = getSpeed();
@@ -532,83 +561,80 @@ setMotor stopC = {
             0x00,
             0x00
         };
-    if (value == 1) {
-        //Forward
+    if (value == FORWARD) {
         write(s, (const void *)&forwardA, (int)sizeof(forwardA));
         write(s, (const void *)&forwardC, (int)sizeof(forwardC));
         actionDelay();
  		write(s, (const void *)&stopA, (int)sizeof(stopA));
         write(s, (const void *)&stopC, (int)sizeof(stopC));       
-    } else if (value == 2) {
-        //right
+    } else if (value == RIGHT) {
         write(s, (const void *)&forwardA, (int)sizeof(forwardA));
         write(s, (const void *)&reverseC, (int)sizeof(reverseC));
         actionDelay();
  		write(s, (const void *)&stopA, (int)sizeof(stopA));
         write(s, (const void *)&stopC, (int)sizeof(stopC));
-    } else if (value == 3) {
-        //reverse
+    } else if (value == REVERSE) {
         write(s, (const void *)&reverseA, (int)sizeof(reverseA));
         write(s, (const void *)&reverseC, (int)sizeof(reverseC));
         actionDelay();
  		write(s, (const void *)&stopA, (int)sizeof(stopA));
         write(s, (const void *)&stopC, (int)sizeof(stopC));
-    } else if (value == 4) {
-        //left
+    } else if (value == LEFT) {
         write(s, (const void *)&forwardC, (int)sizeof(forwardC));
         write(s, (const void *)&reverseA, (int)sizeof(reverseA));
         actionDelay();
  		write(s, (const void *)&stopA, (int)sizeof(stopA));
         write(s, (const void *)&stopC, (int)sizeof(stopC));
-    } else if (value == 5) {
+    } else if (value == MAPPING) {
     	mappingState = 1;
     	clearMap = true;
         scanArea();
     }
 }
 
+/******************************************************
+ * Interface Functions
+ ******************************************************/
 
-double degreesToRadians(int degrees) {
-	return degrees * (M_PI/180.0);
+bool getClearMap() {
+	return clearMap;
 }
 
-void calculateCoordinates(int cm, int angleIndex) {
-	if(angleIndex == 0) {
-		coordinateX = 0;
-		coordinateY = cm;
-	}
-	else if(angleIndex > 0 && angleIndex < 9) {
-		coordinateX = (-1) * cm * sin(degreesToRadians((angleIndex * 10)));
-		coordinateY = cm * cos(degreesToRadians((angleIndex * 10)));
-	}
-	else if(angleIndex == 9) {
-		coordinateX = -cm;
-		coordinateY = 0;
-	}
-	else if(angleIndex > 9 && angleIndex < 18) {
-		coordinateX = (-1) * cm * cos(degreesToRadians(((angleIndex - 9) * 10)));
-		coordinateY = (-1) * cm * sin(degreesToRadians(((angleIndex - 9) * 10)));
-	}
-	else if(angleIndex == 18) {
-		coordinateX = 0;
-		coordinateY = -cm;
-	}
-	else if(angleIndex > 18 && angleIndex < 27) {
-		coordinateX = cm * sin(degreesToRadians(((angleIndex - 18) * 10)));
-		coordinateY = (-1) * cm * cos(degreesToRadians(((angleIndex - 18) * 10)));
-	}
-	else if(angleIndex == 27) {
-		coordinateX = cm;
-		coordinateY = 0;
-	} else if (angleIndex > 27) {
-		coordinateX = cm * cos(degreesToRadians(((angleIndex - 27) * 10)));
-		coordinateY = cm * sin(degreesToRadians(((angleIndex - 27) * 10)));
-	}
+void mapCleared() {
+	clearMap = false;
 }
+
+bool isMapDataReady() {
+	return mapDataReady;
+}
+
+int isMapping() {
+	return mappingState;
+}
+
+void setMapDataRecieved() {
+	mapDataReady = false;
+}
+
+int getDistanceValue() {
+	mapDataReady = false;
+	return distance;
+}
+
+double getXCoordinate() {
+	return coordinateX;
+}
+
+double getYCoordinate() {
+	return coordinateY;
+}
+
+/******************************************************
+ * Main
+ ******************************************************/
 
 int main(int argc, char **argv)
 {
-
 	initializePins();
 
     struct sockaddr_rc addr = { 0 };
@@ -639,7 +665,7 @@ int main(int argc, char **argv)
         pthread_create(&joystickThread, NULL, joystickStart, NULL);
         pthread_create(&displayThread, NULL, displayStart, NULL);
         while(1) {
-
+        
         }    
     }
     
